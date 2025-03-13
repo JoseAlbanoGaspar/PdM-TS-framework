@@ -143,7 +143,7 @@ class PCAFeatureSelector(BaseEstimator, TransformerMixin):
 
         # Determine number of components to retain
         self.num_components = np.argmax(explained_variance_ratio >= self.variance_threshold) + 1
-        print(f"Selected {self.num_components} PCA components to explain {self.variance_threshold * 100}% variance")
+        # print(f"Selected {self.num_components} PCA components to explain {self.variance_threshold * 100}% variance")
 
         return self
 
