@@ -24,9 +24,11 @@ class RegularityResampler(BaseEstimator, TransformerMixin):
         # Sort by ProcessId and DateTime
         X = X.sort_values(by=['ProcessId', 'DateTime'])
 
-        # Resampling process
         resampled_dfs = []
         for process_id, group in X.groupby("ProcessId"):
+            # Store failure events separately before resampling
+            failure_events = group[group['event'] == 1].copy()
+
             # Create a full time index for this process
             full_index = pd.date_range(start=group["DateTime"].min(),
                                        end=group["DateTime"].max(),
@@ -34,8 +36,18 @@ class RegularityResampler(BaseEstimator, TransformerMixin):
             full_index = pd.MultiIndex.from_product([[process_id], full_index],
                                                     names=["ProcessId", "DateTime"])
 
-            # Set index, reindex to fill missing timestamps
+            # Resample: Reindexing will introduce NaNs for missing timestamps
             group = group.set_index(["ProcessId", "DateTime"]).reindex(full_index)
+
+            # Restore failure events explicitly (ensuring `event = 1` is not lost)
+            group['event'] = group['event'].fillna(0)  # Default fill with 0
+            for _, failure_row in failure_events.iterrows():
+                failure_time = failure_row.name  # Get original timestamp
+                if failure_time in group.index:
+                    group.at[failure_time, 'event'] = 1  # Restore the failure event
+
+            # Forward-fill failures to avoid losing the signal
+            group['event'] = group['event'].replace(0, np.nan).ffill().fillna(0).astype(int)
 
             resampled_dfs.append(group)
 

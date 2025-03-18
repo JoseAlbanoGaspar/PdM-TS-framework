@@ -65,6 +65,9 @@ raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
 # Split into train & test
 train_df, test_df = train_test_split_by_time(raw_df, train_ratio=0.7)
 
+print(f' Event failures in train: {(train_df['event'] == 1).sum()}')
+print(f' Event failures in test: {(test_df['event'] == 1).sum()}')
+
 # Create output directory if it doesn't exist
 output_dir = "DatasetCleaned"
 os.makedirs(output_dir, exist_ok=True)
@@ -80,8 +83,13 @@ pipeline_metadata = {}
 
 # Apply each pipeline and save results
 for idx, pipeline in enumerate(pipeline_combinations):
+    print('Processing pipeline:', str(pipeline.steps))
+
     train_transformed = pipeline.fit_transform(train_df)
     test_transformed = pipeline.transform(test_df)
+
+    print(f' Event failures in train: {(train_transformed['event'] == 1).sum()}')
+    print(f' Event failures in test: {(test_transformed['event'] == 1).sum()}')
 
     # Save transformed datasets as pickle files
     train_path = os.path.join(output_dir, f'pipeline_{idx}_train.pkl')
@@ -91,7 +99,6 @@ for idx, pipeline in enumerate(pipeline_combinations):
 
     # Store pipeline steps in metadata
     pipeline_metadata[idx] = str(pipeline.steps)
-    print('Processed pipeline:', str(pipeline.steps))
 
 # Save pipeline metadata to a JSON file
 metadata_path = os.path.join(output_dir, "pipeline_metadata.json")
