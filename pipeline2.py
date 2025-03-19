@@ -12,6 +12,7 @@ from transformers import (
     CorrelationFeatureSelector, PCAFeatureSelector
 )
 
+
 # Wrapper Transformer for Grid Search
 class StepSelector(BaseEstimator, TransformerMixin):
     def __init__(self, transformer=None, params={}):
@@ -24,8 +25,40 @@ class StepSelector(BaseEstimator, TransformerMixin):
             self.transformer.fit(X, y)
         return self
     
-    def transform(self, X):
-        return self.transformer.transform(X) if self.transformer else X
+    def transform(self, X, y=None):
+        if self.transformer:
+            return self.transformer.transform(X, y)
+        else:
+            return X
+
+
+# Custom pipeline wrapper to handle both X and y
+class PipelineWithTarget(Pipeline):
+    def fit(self, X, y=None, **fit_params):
+        """Ensures that event (y) stays with X until transformation is complete."""
+
+        X['event'] = y.values  # Temporarily store y inside X
+        print(X['event'].head())
+        X_transformed = X
+        for name, transformer in self.steps[:-1]:  # Apply all transformers
+            X_transformed, y = transformer.fit_transform(X_transformed, X_transformed['event'])
+            print(X_transformed['event'].head())
+
+
+        X_final = X_transformed.drop(columns=['event'])  # Extract final X
+        y_final = X_transformed['event']  # Extract updated y
+
+        return self.steps[-1][1].fit(X_final, y_final, **fit_params)  # Fit model
+
+    def transform(self, X, y=None):
+        X = X.copy()
+        X['event'] = y.values if y is not None else None  # Keep event inside X
+        
+        for name, transformer in self.steps[:-1]:
+            X, y = transformer.transform(X, X['event'])
+
+        return X.drop(columns=['event']), X['event']  # Return updated X and y
+
 
 # Train-test split by time
 def train_test_split_by_time(df, time_col='DateTime', id_col='ProcessId', train_ratio=0.7):
@@ -36,6 +69,7 @@ def train_test_split_by_time(df, time_col='DateTime', id_col='ProcessId', train_
         train_list.append(group.iloc[:split_idx])
         test_list.append(group.iloc[split_idx:])
     return pd.concat(train_list).reset_index(drop=True), pd.concat(test_list).reset_index(drop=True)
+
 
 # Load dataset
 raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
@@ -52,8 +86,8 @@ param_grid = {
 # LightGBM model
 model = lgb.LGBMClassifier(random_state=42)
 
-# Define Pipeline
-pipeline = Pipeline([
+# Define Pipeline with custom handling of X and y
+pipeline = PipelineWithTarget([
     ('regularity', StepSelector()),
     ('imputation', StepSelector()),
     ('feature_extraction', StepSelector()),
@@ -76,9 +110,11 @@ param_search = {
 # Train-test split for model training
 X_train, X_test, y_train, y_test = train_df.drop(columns=['event']), test_df.drop(columns=['event']), train_df['event'], test_df['event']
 
+# INSERT HERE
+'''
 # Run RandomizedSearchCV
 random_search = RandomizedSearchCV(pipeline, param_distributions=param_search, n_iter=30, cv=3, scoring='accuracy', verbose=1, n_jobs=-1, random_state=42)
-random_search.fit(X_train, y_train)
+random_search.fit(train_df, y_train)
 
 # Save best model and metadata
 best_model = random_search.best_estimator_
@@ -89,3 +125,4 @@ with open(os.path.join(output_dir, "best_model.pkl"), "wb") as f:
     json.dump(metadata, f, indent=4)
 
 print(f"✅ Best model saved! Accuracy: {best_model.score(X_test, y_test):.4f}")
+'''
