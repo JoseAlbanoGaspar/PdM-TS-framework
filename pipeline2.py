@@ -49,7 +49,7 @@ class MetaClassifier(BaseEstimator, ClassifierMixin):
             Returns self.
         """
         # Check input data
-        X, y = check_X_y(X, y)
+        X, y = check_X_y(X, X['event'])
         
         # Store the classes
         self.classes_ = np.unique(y)
