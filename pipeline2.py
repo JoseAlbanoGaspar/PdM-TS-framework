@@ -1,91 +1,141 @@
-import os
-import json
+import numpy as np
 import pandas as pd
-import lightgbm as lgb
-from itertools import product
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.base import BaseEstimator, TransformerMixin, clone
+from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
+from sklearn.ensemble import RandomForestClassifier
 
 from transformers import (
     RegularityResampler, NAInterpolator, LagFeatureExtractor,
     CorrelationFeatureSelector, PCAFeatureSelector
 )
 
-# Wrapper Transformer for Grid Search
-class StepSelector(BaseEstimator, TransformerMixin):
-    def __init__(self, transformer=None, params={}):
+# 1. Wrapper to Track y Transformations
+class TransformerYTracker(BaseEstimator, TransformerMixin):
+    def __init__(self, transformer):
         self.transformer = transformer
-        self.params = params
-    
+        self.y_transformed_ = None
+        
     def fit(self, X, y=None):
-        if self.transformer:
-            self.transformer.set_params(**self.params)
-            self.transformer.fit(X, y)
+        self.transformer.fit(X, y)
         return self
     
-    def transform(self, X):
-        return self.transformer.transform(X) if self.transformer else X
+    def transform(self, X, y=None):
+        X_transformed = self.transformer.transform(X)
+        
+        if hasattr(self.transformer, 'y_new_'):
+            self.y_transformed_ = self.transformer.y_new_
+        else:
+            self.y_transformed_ = y
+        
+        return X_transformed
+        
+    def get_y_transformed(self):
+        return self.y_transformed_
 
-# Train-test split by time
-def train_test_split_by_time(df, time_col='DateTime', id_col='ProcessId', train_ratio=0.7):
-    train_list, test_list = [], []
-    for process_id, group in df.groupby(id_col):
-        group = group.sort_values(by=time_col)
-        split_idx = int(len(group) * train_ratio)
-        train_list.append(group.iloc[:split_idx])
-        test_list.append(group.iloc[split_idx:])
-    return pd.concat(train_list).reset_index(drop=True), pd.concat(test_list).reset_index(drop=True)
+# 2. MetaEstimator to Manage Full Pipeline
+class MetaEstimator(BaseEstimator):
+    def __init__(self, transformers, final_estimator):
+        self.transformers = transformers
+        self.final_estimator = final_estimator
+        self._transformers = None
+    
+    def fit(self, X, y):
+        X_current = X.copy()
+        y_current = y.copy()
+        
+        self._transformers = []
+        
+        for transformer in self.transformers:
+            wrapped_transformer = TransformerYTracker(clone(transformer))
+            X_current = wrapped_transformer.fit_transform(X_current, y_current)
+            y_current = wrapped_transformer.get_y_transformed()
+            self._transformers.append(wrapped_transformer)
+        
+        self.final_estimator.fit(X_current, y_current)
+        return self
+    
+    def predict(self, X):
+        X_current = X.copy()
+        for transformer in self._transformers:
+            X_current = transformer.transform(X_current)
+        return self.final_estimator.predict(X_current)
+    
+    def get_params(self, deep=True):
+        params = {}
+        for i, t in enumerate(self.transformers):
+            for k, v in t.get_params(deep=deep).items():
+                params[f'transformers__{i}__{k}'] = v
+        
+        for k, v in self.final_estimator.get_params(deep=deep).items():
+            params[f'final_estimator__{k}'] = v
+        
+        return params
+    
+    def set_params(self, **params):
+        transformer_params = {}
+        estimator_params = {}
+        
+        for k, v in params.items():
+            if k.startswith('transformers__'):
+                parts = k.split('__')
+                if len(parts) >= 3:
+                    idx = int(parts[1])
+                    param_name = '__'.join(parts[2:])
+                    if idx not in transformer_params:
+                        transformer_params[idx] = {}
+                    transformer_params[idx][param_name] = v
+            elif k.startswith('final_estimator__'):
+                param_name = '__'.join(k.split('__')[1:])
+                estimator_params[param_name] = v
+        
+        for idx, params in transformer_params.items():
+            self.transformers[idx].set_params(**params)
+        
+        self.final_estimator.set_params(**estimator_params)
+        
+        return self
 
-# Load dataset
-raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
-train_df, test_df = train_test_split_by_time(raw_df, train_ratio=0.7)
+# 3. Define Transformers
+resampler = RegularityResampler(freq='1H')
+imputer = NAInterpolator(method='linear')
+lag_extractor = LagFeatureExtractor(n_lags=3)
+corr_selector = CorrelationFeatureSelector(threshold=0.9)
 
-# Define pipeline steps with multiple options
-param_grid = {
-    'regularity': [None, StepSelector(RegularityResampler(), {'freq': '1H'}), StepSelector(RegularityResampler(), {'freq': '2H'})],
-    'imputation': [StepSelector(NAInterpolator(), {'method': 'linear'})],
-    'feature_extraction': [StepSelector(LagFeatureExtractor(), {'n_lags': 3}), StepSelector(LagFeatureExtractor(), {'n_lags': 6})],
-    'feature_selection': [StepSelector(CorrelationFeatureSelector(), {'threshold': 0.9}), StepSelector(PCAFeatureSelector(), {'variance_threshold': 0.95})],
+# 4. Define Final Estimator
+final_model = RandomForestClassifier(random_state=42)
+
+# 5. Create MetaEstimator
+meta_estimator = MetaEstimator(
+    transformers=[resampler, imputer, lag_extractor, corr_selector],
+    final_estimator=final_model
+)
+
+# 6. Setup TimeSeries Cross-Validation
+tscv = TimeSeriesSplit(n_splits=5)
+
+# 7. Define Hyperparameter Search Space
+param_distributions = {
+    'transformers__0__freq': ['30T', '1H', '2H'],
+    'transformers__1__method': ['linear', 'nearest', 'spline'],
+    'transformers__2__n_lags': [2, 3, 5],
+    'transformers__3__threshold': [0.8, 0.9, 0.95],
+    'final_estimator__n_estimators': [50, 100, 200],
+    'final_estimator__max_depth': [None, 10, 20]
 }
 
-# LightGBM model
-model = lgb.LGBMClassifier(random_state=42)
+# 8. Run Randomized Search
+random_search = RandomizedSearchCV(
+    estimator=meta_estimator,
+    param_distributions=param_distributions,
+    n_iter=20,
+    cv=tscv,
+    scoring='accuracy',
+    verbose=2,
+    random_state=42,
+    n_jobs=-1
+)
 
-# Define Pipeline
-pipeline = Pipeline([
-    ('regularity', StepSelector()),
-    ('imputation', StepSelector()),
-    ('feature_extraction', StepSelector()),
-    ('feature_selection', StepSelector()),
-    ('classifier', model)
-])
-
-# Flatten param_grid for RandomizedSearchCV
-param_search = {
-    'regularity': param_grid['regularity'],
-    'imputation': param_grid['imputation'],
-    'feature_extraction': param_grid['feature_extraction'],
-    'feature_selection': param_grid['feature_selection'],
-    'classifier__n_estimators': [50, 100, 200],
-    'classifier__max_depth': [10, 20, 30, None],
-    'classifier__learning_rate': [0.01, 0.05, 0.1],
-    'classifier__num_leaves': [31, 50, 100],
-}
-
-# Train-test split for model training
-X_train, X_test, y_train, y_test = train_df.drop(columns=['event']), test_df.drop(columns=['event']), train_df['event'], test_df['event']
-
-# Run RandomizedSearchCV
-random_search = RandomizedSearchCV(pipeline, param_distributions=param_search, n_iter=30, cv=3, scoring='accuracy', verbose=1, n_jobs=-1, random_state=42)
-random_search.fit(X_train, y_train)
-
-# Save best model and metadata
-best_model = random_search.best_estimator_
-metadata = {'best_params': random_search.best_params_}
-output_dir = "DatasetCleaned"
-os.makedirs(output_dir, exist_ok=True)
-with open(os.path.join(output_dir, "best_model.pkl"), "wb") as f:
-    json.dump(metadata, f, indent=4)
-
-print(f"✅ Best model saved! Accuracy: {best_model.score(X_test, y_test):.4f}")
+# Uncomment when ready to run
+# random_search.fit(X_train, y_train)
+# best_model = random_search.best_estimator_
+# print("Best Parameters:", random_search.best_params_)
