@@ -5,6 +5,8 @@ from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from itertools import product
 
 from transformers import (
     RegularityResampler,
@@ -104,27 +106,87 @@ def train_test_split_by_time(df, time_col='DateTime', id_col='ProcessId', train_
     return train_df, test_df
 
 
-# ---- Example Usage ----
-if __name__ == "__main__":
-
+class CustomRandomizedSearchCV(RandomizedSearchCV):
+    """Custom RandomizedSearchCV that uses transformed y as ground truth"""
     
+    def fit(self, X, y=None, groups=None, **fit_params):
+        """Override fit method to handle transformed y values"""
+        # Initialize results dictionary
+        self.cv_results_ = {
+            'mean_test_score': [],
+            'params': []
+        }
+        self.best_score_ = -np.inf
+        self.best_params_ = None
+        self.best_index_ = None
+        
+        # Generate all possible parameter combinations
+        param_names = sorted(self.param_distributions)
+        param_values = [self.param_distributions[name] for name in param_names]
+        param_combinations = [dict(zip(param_names, v)) for v in product(*param_values)]
+        
+        # For each parameter combination
+        for parameters in param_combinations:
+            print(f"Testing parameters: {parameters}", flush=True)
+            # Clone the pipeline
+            estimator = clone(self.estimator)
+            estimator.set_params(**parameters)
+            
+            scores = []
+            # For each CV split
+            for train_idx, val_idx in self.cv.split(X, y, groups):
+                # Split data
+                X_train = X.iloc[train_idx].copy()
+                X_val = X.iloc[val_idx].copy()
+                
+                # Fit pipeline on training data
+                estimator.fit(X_train)
+                
+                # Get transformed validation data and ground truth
+                X_val_transformed = X_val.copy()
+                for name, transformer in estimator.steps[:-1]:
+                    if hasattr(transformer, 'transform'):
+                        X_val_transformed = transformer.transform(X_val_transformed)
+                
+                # Extract transformed y as ground truth
+                y_true = X_val_transformed['event']
+                
+                # Get predictions
+                y_pred = estimator.predict(X_val)
+                
+                # Calculate score
+                score = accuracy_score(y_true, y_pred)
+                scores.append(score)
+            
+            # Store results
+            mean_score = np.mean(scores)
+            self.cv_results_['mean_test_score'].append(mean_score)
+            self.cv_results_['params'].append(parameters)
+            
+            # Update best score/parameters if needed
+            if mean_score > self.best_score_:
+                self.best_score_ = mean_score
+                self.best_params_ = parameters
+                self.best_index_ = len(self.cv_results_['mean_test_score']) - 1
+                self.best_estimator_ = clone(estimator)
+        
+        # Fit the best estimator on the full dataset
+        if self.refit:
+            self.best_estimator_.fit(X)
+        
+        return self
+
+# ...existing MetaClassifier and train_test_split_by_time code...
+
+if __name__ == "__main__":
     # Load dataset
     raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
-    #raw_df = raw_df.head(20)
+    
     # Split dataset into train & test
     train_df, test_df = train_test_split_by_time(raw_df, train_ratio=0.7)
 
-    X_train, y_train = train_df.drop(columns=['event']), train_df['event']
-    X_test, y_test = test_df.drop(columns=['event']), test_df['event']
-
-    '''print(X_train)
-    print(y_train)
-    print(X_test)
-    print(y_test)'''
-
     param_dist = {
         'regularity_resampling__freq': ['15T', '30T', '1H', '2H', '4H'],
-        #'imputation__method': ['linear', 'polynomial', 'spline'],
         'feature_extraction__n_lags': [1, 2, 3, 4, 5],
         'feature_selection__threshold': [0.85, 0.9, 0.95],
     }
@@ -144,18 +206,27 @@ if __name__ == "__main__":
     # Time Series Cross-Validation
     tscv = TimeSeriesSplit(n_splits=2)
 
-    # Randomized Search with TimeSeriesSplit
-    random_search = RandomizedSearchCV(
-        pipeline, param_distributions=param_dist, 
-        n_iter=10, cv=tscv, n_jobs=-1, verbose=2
+    # Use CustomRandomizedSearchCV
+    random_search = CustomRandomizedSearchCV(
+        pipeline, 
+        param_distributions=param_dist,
+        n_iter=10,
+        cv=tscv,
+        n_jobs=1,  # Set to 1 since we're handling CV manually
+        verbose=2
     )
 
-    # Train the model
-    random_search.fit(train_df, y_train)
+    # Train the model using complete dataframe
+    random_search.fit(train_df, train_df['event'])
 
-'''
-    # Evaluate performance
+    # Get transformed test data for final evaluation
+    test_transformed = test_df.copy()
+    for name, transformer in random_search.best_estimator_.steps[:-1]:
+        if hasattr(transformer, 'transform'):
+            test_transformed = transformer.transform(test_transformed)
+    
+    # Evaluate performance using transformed labels
     y_pred = random_search.best_estimator_.predict(test_df)
-    print("Accuracy:", accuracy_score(y_test, y_pred))
-    print("Best Params:", random_search.best_params_)'
-    '''
+    y_true = test_transformed['event']
+    print("Accuracy:", accuracy_score(y_true, y_pred))
+    print("Best Parameters:", random_search.best_params_)

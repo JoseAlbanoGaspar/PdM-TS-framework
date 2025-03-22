@@ -242,3 +242,21 @@ class PCAFeatureSelector(BaseEstimator, TransformerMixin):
         X_transformed = pd.concat([X[self.exclude_cols], X_pca_df], axis=1)
 
         return X_transformed
+    
+
+class DatetimeFeatureExtractor(BaseEstimator, TransformerMixin):
+    """Transform DateTime column into usable features"""
+    
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        X = X.copy()
+        if 'DateTime' in X.columns:
+            X['Year'] = X['DateTime'].dt.year
+            X['Month'] = X['DateTime'].dt.month
+            X['Day'] = X['DateTime'].dt.day
+            X['Hour'] = X['DateTime'].dt.hour
+            X['Minute'] = X['DateTime'].dt.minute
+            X.drop(columns=['DateTime'], inplace=True)
+        return X
