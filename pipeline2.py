@@ -1,90 +1,47 @@
-import pandas as pd
 import numpy as np
-from sklearn.base import BaseEstimator, ClassifierMixin, clone
-from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
+import pandas as pd
+from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
+from sklearn.datasets import make_classification
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.pipeline import Pipeline
-from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
+from sklearn.model_selection._split import BaseCrossValidator
+from sklearn.metrics import accuracy_score
 
 from transformers import (
     RegularityResampler,
-    NAForwardFill,
+    NAInterpolator,
     LagFeatureExtractor,
     CorrelationFeatureSelector
 )
-    
+
+# meta-modelo que recebe o modelo e ignora um y_dummy
+# a func score é importante
 class MetaClassifier(BaseEstimator, ClassifierMixin):
-    """
-    A meta-classifier that wraps a base estimator.
-    Ensures compatibility with pipelines that transform both X and y.
-    """
-    
-    def __init__(self, base_estimator):
+    def __init__(self, base_estimator, actual_target_col='event'):
         self.base_estimator = base_estimator
-    
-    def fit(self, X, _y=None):
-        """
-        Fit the meta-classifier.
-        X should contain both features and target (before splitting).
-        """
-        y = X['event']  # Extract target
-        X = X.drop(columns=['event'])  # Remove target from features
-        X = self.prepare_datetime_data(X)  # Process datetime features
+        self.actual_target_col = actual_target_col
 
-        X, y = check_X_y(X, y)  # Validate inputs
-        self.classes_ = np.unique(y)
-
-        self.estimator_ = clone(self.base_estimator)  # Clone model
-        self.estimator_.fit(X, y)  # Train model
-
-        if hasattr(self.estimator_, 'feature_importances_'):
-            self.feature_importances_ = self.estimator_.feature_importances_
-
+    def fit(self, X, y=None):
+        y_actual = X[self.actual_target_col]
+        X_actual = X.drop(columns=[self.actual_target_col, 'DateTime'])
+        self.base_estimator.fit(X_actual, y_actual)
         return self
-    
+
     def predict(self, X):
-        """
-        Predict class labels for X.
-        """
-        check_is_fitted(self, ['estimator_', 'classes_'])
-
-        if 'event' in X.columns:  # Drop event if it exists
-            X = X.drop(columns=['event'])
-        X = self.prepare_datetime_data(X)
-
-        X = check_array(X)
-        return self.estimator_.predict(X)
+        X_actual = X.drop(columns=[self.actual_target_col, 'DateTime'])
+        return self.base_estimator.predict(X_actual)
 
     def predict_proba(self, X):
-        """
-        Predict class probabilities.
-        """
-        check_is_fitted(self, ['estimator_', 'classes_'])
+        X_actual = X.drop(columns=[self.actual_target_col, 'DateTime'])
+        return self.base_estimator.predict_proba(X_actual)
 
-        if not hasattr(self.estimator_, 'predict_proba'):
-            raise AttributeError("Base estimator doesn't support predict_proba")
-        
-        if 'event' in X.columns:  # Drop event if present
-            X = X.drop(columns=['event'])
-        X = self.prepare_datetime_data(X)
+    def score(self, X, y=None):
+        y_true = X[self.actual_target_col]
 
-        X = check_array(X)
-        return self.estimator_.predict_proba(X)
-    
-    def prepare_datetime_data(self, df):
-        """
-        Process datetime features.
-        """
-        df = df.copy()
-        if 'DateTime' in df.columns:
-            df['Year'] = df['DateTime'].dt.year
-            df['Month'] = df['DateTime'].dt.month
-            df['Day'] = df['DateTime'].dt.day
-            df['Hour'] = df['DateTime'].dt.hour
-            df['Minute'] = df['DateTime'].dt.minute
-            df.drop(columns=['DateTime'], inplace=True)
-        return df
+        y_pred = self.predict(X)
 
+        return accuracy_score(y_true, y_pred)
 
 def train_test_split_by_time(df, time_col='DateTime', id_col='ProcessId', train_ratio=0.7):
     """
@@ -104,58 +61,50 @@ def train_test_split_by_time(df, time_col='DateTime', id_col='ProcessId', train_
     return train_df, test_df
 
 
-# ---- Example Usage ----
-if __name__ == "__main__":
+# Load dataset
+raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
+#raw_df = raw_df.head(20)
+# Split dataset into train & test
+train_df, test_df = train_test_split_by_time(raw_df, train_ratio=0.7)
 
-    
-    # Load dataset
-    raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
-    #raw_df = raw_df.head(20)
-    # Split dataset into train & test
-    train_df, test_df = train_test_split_by_time(raw_df, train_ratio=0.7)
+X_train, y_train = train_df.drop(columns=['event']), train_df['event']
+X_test, y_test = test_df.drop(columns=['event']), test_df['event']
 
-    X_train, y_train = train_df.drop(columns=['event']), train_df['event']
-    X_test, y_test = test_df.drop(columns=['event']), test_df['event']
 
-    '''print(X_train)
-    print(y_train)
-    print(X_test)
-    print(y_test)'''
-
-    param_dist = {
-        'regularity_resampling__freq': ['15T', '30T', '1H', '2H', '4H'],
-        #'imputation__method': ['linear', 'polynomial', 'spline'],
-        'feature_extraction__n_lags': [1, 2, 3, 4, 5],
-        'feature_selection__threshold': [0.85, 0.9, 0.95],
-    }
-
-    base_clf = RandomForestClassifier(n_estimators=10, random_state=42)
-    meta_clf = MetaClassifier(base_estimator=base_clf)
-
-    # Pipeline with transformers
-    pipeline = Pipeline([
+meta_clf = MetaClassifier(
+        base_estimator=DecisionTreeClassifier(),
+        actual_target_col='event'
+    )
+# pipeline simples
+pipeline = Pipeline([
         ('regularity_resampling', RegularityResampler()),
-        ('imputation', NAForwardFill()),
+        ('imputation', NAInterpolator()),
         ('feature_extraction', LagFeatureExtractor()),
         ('feature_selection', CorrelationFeatureSelector()),
         ('classifier', meta_clf) 
     ])
 
-    # Time Series Cross-Validation
-    tscv = TimeSeriesSplit(n_splits=2)
+param_distributions = {
+    'regularity_resampling__freq': ['15T', '30T', '1H', '2H', '4H'],
+    'imputation__method': ['linear', ('polynomial', 2), ('polynomial', 3), ('spline', 2), ('spline', 3)],
+    'feature_extraction__n_lags': [1, 2, 3, 4, 5],
+    'feature_selection__threshold': [0.85, 0.9, 0.95],
+    'classifier__base_estimator__max_depth': [3, 5, 10, None]
+}
 
-    # Randomized Search with TimeSeriesSplit
-    random_search = RandomizedSearchCV(
-        pipeline, param_distributions=param_dist, 
-        n_iter=10, cv=tscv, n_jobs=-1, verbose=2
-    )
+random_search = RandomizedSearchCV(
+    pipeline,
+    param_distributions,
+    cv=TimeSeriesSplit(n_splits=2),
+    n_iter=5,
+)
 
-    # Train the model
-    random_search.fit(train_df, y_train)
+# Fit with original data
+random_search.fit(train_df, y_train) # y_train is a dummy
+print(random_search.best_params_)
+print(random_search.best_score_)
 
-'''
-    # Evaluate performance
-    y_pred = random_search.best_estimator_.predict(test_df)
-    print("Accuracy:", accuracy_score(y_test, y_pred))
-    print("Best Params:", random_search.best_params_)'
-    '''
+
+# getting accuracy
+print("Accuracy:", random_search.best_estimator_.score(test_df))
+print("Best Params:", random_search.best_params_)

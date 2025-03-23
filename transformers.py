@@ -56,40 +56,64 @@ class RegularityResampler(BaseEstimator, TransformerMixin):
 # 2️⃣ Imputation Transformers
 class NAHandler:
     @staticmethod
-    def split_and_process(X, process_func, event_fill=0):
+    def handle_event_column(df, event_fill=0):
+        """
+        Specialized handling for the event column.
+        
+        Args:
+            df: DataFrame containing the event column
+            event_fill: Value to fill NAs in event column
+        
+        Returns:
+            DataFrame with properly filled event column
+        """
+        if 'event' in df.columns and event_fill is not None:
+            df = df.copy()
+            df['event'] = df['event'].fillna(event_fill).astype(int)
+        return df
+    
+    @staticmethod
+    def split_and_process(X, process_func, event_fill=0, exclude_cols=None):
         """
         Utility method to:
-        1. Split a dataframe into event column and other columns
-        2. Apply the specified process_func to non-event columns
-        3. Fill event column with event_fill value
-        4. Combine the results
+        1. Exclude specified columns from processing
+        2. Apply the specified process_func to remaining columns
+        3. Combine the results
         
         Args:
             X: DataFrame to process
-            process_func: Function to apply to non-event columns
+            process_func: Function to apply to processable columns
             event_fill: Value to fill NAs in event column
+            exclude_cols: List of columns to exclude from processing (default: ['ProcessId', 'DateTime', 'event'])
         """
         X = X.copy()
         
-        # Check if event column exists
-        if 'event' in X.columns:
-            # Split event column from the rest
-            event_col = X['event'].copy()
-            rest_df = X.drop(columns=['event'])
+        # Set default exclude columns if none provided
+        if exclude_cols is None:
+            exclude_cols = ['ProcessId', 'DateTime', 'event']
+        
+        # Identify columns to exclude that actually exist in X
+        exclude_cols = [col for col in exclude_cols if col in X.columns]
+        
+        # Identify columns to process
+        processable_cols = [col for col in X.columns if col not in exclude_cols]
+        
+        if not processable_cols:
+            return X  # Nothing to process
+        
+        # Process non-excluded columns
+        processed_df = process_func(X[processable_cols])
+        
+        # Create DataFrames for excluded and processed data
+        excluded_df = X[exclude_cols] if exclude_cols else pd.DataFrame(index=X.index)
+        
+        # Concatenate the processed and excluded columns efficiently
+        result = pd.concat([excluded_df, processed_df], axis=1)
+        
+        # Handle event column with dedicated function
+        result = NAHandler.handle_event_column(result, event_fill)
             
-            # Process non-event columns
-            processed_df = process_func(rest_df)
-            
-            # Fill event column NAs
-            event_col = event_col.fillna(event_fill).astype(int)
-            
-            # Combine results
-            processed_df['event'] = event_col
-            return processed_df
-        else:
-            # If no event column, process everything
-            return process_func(X)
-
+        return result
 class NAInterpolator(BaseEstimator, TransformerMixin):
     def __init__(self, method='linear', event_fill=0):
         self.method = method
@@ -99,9 +123,16 @@ class NAInterpolator(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        # Handle different method specifications
+        if isinstance(self.method, tuple):
+            method_name, order = self.method
+            interpolate_kwargs = {'method': method_name, 'order': order}
+        else:
+            interpolate_kwargs = {'method': self.method}
+
         return NAHandler.split_and_process(
             X,
-            process_func=lambda df: df.interpolate(method=self.method),
+            process_func=lambda df: df.interpolate(**interpolate_kwargs),
             event_fill=self.event_fill
         )
     
