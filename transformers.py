@@ -39,7 +39,7 @@ class RegularityResampler(BaseEstimator, TransformerMixin):
             # Resample: Reindexing will introduce NaNs for missing timestamps
             group = group.set_index(["ProcessId", "DateTime"]).reindex(full_index)
 
-            # Restore failure events explicitly (ensuring `event = 1` is not lost)
+            # Restore failure events explicitly (ensuring event = 1 is not lost)
             group['event'] = group['event'].fillna(0)  # Default fill with 0
             for _, failure_row in failure_events.iterrows():
                 failure_time = failure_row.name  # Get original timestamp
@@ -56,40 +56,64 @@ class RegularityResampler(BaseEstimator, TransformerMixin):
 # 2️⃣ Imputation Transformers
 class NAHandler:
     @staticmethod
-    def split_and_process(X, process_func, event_fill=0):
+    def handle_event_column(df, event_fill=0):
+        """
+        Specialized handling for the event column.
+        
+        Args:
+            df: DataFrame containing the event column
+            event_fill: Value to fill NAs in event column
+        
+        Returns:
+            DataFrame with properly filled event column
+        """
+        if 'event' in df.columns and event_fill is not None:
+            df = df.copy()
+            df['event'] = df['event'].fillna(event_fill).astype(int)
+        return df
+    
+    @staticmethod
+    def split_and_process(X, process_func, event_fill=0, exclude_cols=None):
         """
         Utility method to:
-        1. Split a dataframe into event column and other columns
-        2. Apply the specified process_func to non-event columns
-        3. Fill event column with event_fill value
-        4. Combine the results
+        1. Exclude specified columns from processing
+        2. Apply the specified process_func to remaining columns
+        3. Combine the results
         
         Args:
             X: DataFrame to process
-            process_func: Function to apply to non-event columns
+            process_func: Function to apply to processable columns
             event_fill: Value to fill NAs in event column
+            exclude_cols: List of columns to exclude from processing (default: ['ProcessId', 'DateTime', 'event'])
         """
         X = X.copy()
         
-        # Check if event column exists
-        if 'event' in X.columns:
-            # Split event column from the rest
-            event_col = X['event'].copy()
-            rest_df = X.drop(columns=['event'])
+        # Set default exclude columns if none provided
+        if exclude_cols is None:
+            exclude_cols = ['ProcessId', 'DateTime', 'event']
+        
+        # Identify columns to exclude that actually exist in X
+        exclude_cols = [col for col in exclude_cols if col in X.columns]
+        
+        # Identify columns to process
+        processable_cols = [col for col in X.columns if col not in exclude_cols]
+        
+        if not processable_cols:
+            return X  # Nothing to process
+        
+        # Process non-excluded columns
+        processed_df = process_func(X[processable_cols])
+        
+        # Create DataFrames for excluded and processed data
+        excluded_df = X[exclude_cols] if exclude_cols else pd.DataFrame(index=X.index)
+        
+        # Concatenate the processed and excluded columns efficiently
+        result = pd.concat([excluded_df, processed_df], axis=1)
+        
+        # Handle event column with dedicated function
+        result = NAHandler.handle_event_column(result, event_fill)
             
-            # Process non-event columns
-            processed_df = process_func(rest_df)
-            
-            # Fill event column NAs
-            event_col = event_col.fillna(event_fill).astype(int)
-            
-            # Combine results
-            processed_df['event'] = event_col
-            return processed_df
-        else:
-            # If no event column, process everything
-            return process_func(X)
-
+        return result
 class NAInterpolator(BaseEstimator, TransformerMixin):
     def __init__(self, method='linear', event_fill=0):
         self.method = method
@@ -99,9 +123,16 @@ class NAInterpolator(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        # Handle different method specifications
+        if isinstance(self.method, tuple):
+            method_name, order = self.method
+            interpolate_kwargs = {'method': method_name, 'order': order}
+        else:
+            interpolate_kwargs = {'method': self.method}
+
         return NAHandler.split_and_process(
             X,
-            process_func=lambda df: df.interpolate(method=self.method),
+            process_func=lambda df: df.interpolate(**interpolate_kwargs),
             event_fill=self.event_fill
         )
     
@@ -166,7 +197,7 @@ class LagFeatureExtractor(BaseEstimator, TransformerMixin):
             # Concatenate back with the original group
             group = pd.concat([group, lagged_features], axis=1)
 
-            # Drop first `n_lags` rows *for this process_id only*
+            # Drop first n_lags rows *for this process_id only*
             group = group.iloc[self.n_lags:]
 
             lagged_data.append(group)
@@ -207,7 +238,7 @@ class PCAFeatureSelector(BaseEstimator, TransformerMixin):
     def __init__(self, variance_threshold=0.95, exclude_cols=None):
         self.variance_threshold = variance_threshold
         self.exclude_cols = exclude_cols if exclude_cols is not None else ['ProcessId', 'DateTime', 'event']
-        self.pca = None  # PCA model will be fitted during `fit`
+        self.pca = None  # PCA model will be fitted during fit
         self.num_components = None  # Number of components to retain
 
     def fit(self, X, y=None):
@@ -244,17 +275,19 @@ class PCAFeatureSelector(BaseEstimator, TransformerMixin):
         return X_transformed
     
 
-'''
-# test the transformers
-
-# Load dataset
-df = pd.read_pickle("Datasets/final_dataset.pkl")
-
-# Sort to ensure correct time order
-df.sort_values(by=["ProcessId", "DateTime"], inplace=True)
-
-pipeline = Pipeline(steps=[('regularity', RegularityResampler()), ('imputation', NAInterpolator()),('feature_extraction', LagFeatureExtractor(n_lags=3)), ('feature_selection', CorrelationFeatureSelector())])
-
-df_transformed = pipeline.fit_transform(df)
-print(df_transformed['event'].unique())
-'''
+class DatetimeFeatureExtractor(BaseEstimator, TransformerMixin):
+    """Transform DateTime column into usable features"""
+    
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        X = X.copy()
+        if 'DateTime' in X.columns:
+            X['Year'] = X['DateTime'].dt.year
+            X['Month'] = X['DateTime'].dt.month
+            X['Day'] = X['DateTime'].dt.day
+            X['Hour'] = X['DateTime'].dt.hour
+            X['Minute'] = X['DateTime'].dt.minute
+            X.drop(columns=['DateTime'], inplace=True)
+        return X
