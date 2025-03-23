@@ -4,13 +4,37 @@ import pandas as pd
 import shutil
 from itertools import product
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split
-
 
 
 from transformers import RegularityResampler, NAInterpolator, LagFeatureExtractor, CorrelationFeatureSelector, PCAFeatureSelector
 
+def train_test_split_by_time(df, time_col='DateTime', id_col='ProcessId', train_ratio=0.7):
+    """
+    Splits the dataset into training and testing sets based on time.
+    
+    Parameters:
+        df (pd.DataFrame): The input dataset.
+        time_col (str): The name of the datetime column.
+        id_col (str): The process identifier column.
+        train_ratio (float): Proportion of oldest timestamps to use for training.
+    
+    Returns:
+        train_df (pd.DataFrame): Training set (oldest 70% of timestamps per ProcessId).
+        test_df (pd.DataFrame): Testing set (newest 30% of timestamps per ProcessId).
+    """
+    train_list = []
+    test_list = []
 
+    for process_id, group in df.groupby(id_col):
+        group = group.sort_values(by=time_col)  # Ensure chronological order
+        split_idx = int(len(group) * train_ratio)  # Determine the split index
+        train_list.append(group.iloc[:split_idx])  # Oldest 70% for training
+        test_list.append(group.iloc[split_idx:])  # Newest 30% for testing
+
+    train_df = pd.concat(train_list).reset_index(drop=True)
+    test_df = pd.concat(test_list).reset_index(drop=True)
+
+    return train_df, test_df
 
 ########################################
 #  Getting all pipelines combinations  #
@@ -39,7 +63,10 @@ for reg, imp, feat_ext, feat_sel in product(regularity_options, imputation_optio
 raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
 
 # Split into train & test
-train_df, test_df = train_test_split(raw_df, test_size=0.2, random_state=42)
+train_df, test_df = train_test_split_by_time(raw_df, train_ratio=0.7)
+
+print(f' Event failures in train: {(train_df['event'] == 1).sum()}')
+print(f' Event failures in test: {(test_df['event'] == 1).sum()}')
 
 # Create output directory if it doesn't exist
 output_dir = "DatasetCleaned"
@@ -56,8 +83,13 @@ pipeline_metadata = {}
 
 # Apply each pipeline and save results
 for idx, pipeline in enumerate(pipeline_combinations):
+    print('Processing pipeline:', str(pipeline.steps))
+
     train_transformed = pipeline.fit_transform(train_df)
     test_transformed = pipeline.transform(test_df)
+
+    print(f' Event failures in train: {(train_transformed['event'] == 1).sum()}')
+    print(f' Event failures in test: {(test_transformed['event'] == 1).sum()}')
 
     # Save transformed datasets as pickle files
     train_path = os.path.join(output_dir, f'pipeline_{idx}_train.pkl')
@@ -66,8 +98,7 @@ for idx, pipeline in enumerate(pipeline_combinations):
     test_transformed.to_pickle(test_path)
 
     # Store pipeline steps in metadata
-    pipeline_metadata[idx] = str(pipeline)
-    print('Processed pipeline:', str(pipeline))
+    pipeline_metadata[idx] = str(pipeline.steps)
 
 # Save pipeline metadata to a JSON file
 metadata_path = os.path.join(output_dir, "pipeline_metadata.json")
