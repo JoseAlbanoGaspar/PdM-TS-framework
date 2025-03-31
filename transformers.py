@@ -3,9 +3,6 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.decomposition import PCA
 
-from sklearn.pipeline import Pipeline
-import sys # only for debugging purposes - forcing prints in notebooks
-#sys.stdout.flush()  # Force it to display in Jupyter
 
 # 1️⃣ Regularity Resampling Transformer
 class RegularityResampler(BaseEstimator, TransformerMixin):
@@ -54,6 +51,53 @@ class RegularityResampler(BaseEstimator, TransformerMixin):
         return pd.concat(resampled_dfs).reset_index()
 
 # 2️⃣ Imputation Transformers
+
+class ImputationWrapper(BaseEstimator, TransformerMixin):
+    """
+    Wrapper for different imputation strategies.
+    
+    Parameters:
+    -----------
+    strategy : str, default='interpolate'
+        The imputation strategy to use. Available options:
+        - 'interpolate': Uses NAInterpolator with linear interpolation
+        - 'ffill': Uses NAForwardFill for forward filling
+        - 'bfill': Uses NABackwardFill for backward filling
+    method : str or tuple, default='linear'
+        The interpolation method to use if strategy='interpolate'.
+        Can be a string or a tuple (method_name, order).
+    event_fill : int, default=0
+        Value to fill NAs in the event column
+    """
+    def __init__(self, strategy='interpolate', method='linear', event_fill=0):
+        self.strategy = strategy
+        self.method = method
+        self.event_fill = event_fill
+        self._imputer = None
+        
+    def fit(self, X, y=None):
+        # Initialize the appropriate imputer based on the strategy
+        if self.strategy == 'interpolate':
+            self._imputer = NAInterpolator(method=self.method, event_fill=self.event_fill)
+        elif self.strategy == 'ffill':
+            self._imputer = NAForwardFill(event_fill=self.event_fill)
+        elif self.strategy == 'bfill':
+            self._imputer = NABackwardFill(event_fill=self.event_fill)
+        else:
+            raise ValueError(f"Unknown imputation strategy: {self.strategy}. "
+                             f"Choose from 'interpolate', 'ffill', or 'bfill'.")
+        
+        # Fit the imputer
+        self._imputer.fit(X, y)
+        return self
+    
+    def transform(self, X):
+        # Validate that fit has been called
+        if self._imputer is None:
+            raise ValueError("ImputationWrapper has not been fitted yet.")
+        
+        # Apply the transform
+        return self._imputer.transform(X)
 class NAHandler:
     @staticmethod
     def handle_event_column(df, event_fill=0):
@@ -207,7 +251,58 @@ class LagFeatureExtractor(BaseEstimator, TransformerMixin):
 
         return X_transformed
 
-# 4️⃣ Feature Selection - Correlation
+# 4️⃣ Feature Selection
+class FeatureSelectionWrapper(BaseEstimator, TransformerMixin):
+    """
+    Wrapper for different feature selection strategies.
+    
+    Parameters:
+    -----------
+    strategy : str, default='correlation'
+        The feature selection strategy to use. Available options:
+        - 'correlation': Uses CorrelationFeatureSelector
+        - 'pca': Uses PCAFeatureSelector
+    threshold : float, default=0.9
+        Threshold value for correlation-based feature selection
+    variance_threshold : float, default=0.95
+        Variance threshold for PCA-based feature selection
+    exclude_cols : list, default=None
+        Columns to exclude from feature selection
+    """
+    def __init__(self, strategy='correlation', threshold=0.9, 
+                 variance_threshold=0.95, exclude_cols=None):
+        self.strategy = strategy
+        self.threshold = threshold
+        self.variance_threshold = variance_threshold
+        self.exclude_cols = exclude_cols if exclude_cols is not None else ['ProcessId', 'DateTime', 'event']
+        self._selector = None
+        
+    def fit(self, X, y=None):
+        # Initialize the appropriate selector based on the strategy
+        if self.strategy == 'correlation':
+            self._selector = CorrelationFeatureSelector(threshold=self.threshold)
+        elif self.strategy == 'pca':
+            self._selector = PCAFeatureSelector(
+                variance_threshold=self.variance_threshold,
+                exclude_cols=self.exclude_cols
+            )
+        else:
+            raise ValueError(f"Unknown feature selection strategy: {self.strategy}. "
+                             f"Choose from 'correlation' or 'pca'.")
+        
+        # Fit the selector
+        self._selector.fit(X, y)
+        return self
+    
+    def transform(self, X):
+        # Validate that fit has been called
+        if self._selector is None:
+            raise ValueError("FeatureSelectionWrapper has not been fitted yet.")
+        
+        # Apply the transform
+        return self._selector.transform(X)
+
+# Correlation
 class CorrelationFeatureSelector(BaseEstimator, TransformerMixin):
     def __init__(self, threshold=0.9):
         self.threshold = threshold
@@ -233,7 +328,7 @@ class CorrelationFeatureSelector(BaseEstimator, TransformerMixin):
         #print("After dropping correlated features:", X_transformed.columns)  # Debugging Line
         return X_transformed
 
-# 5️⃣ Feature Selection - PCA
+# PCA
 class PCAFeatureSelector(BaseEstimator, TransformerMixin):
     def __init__(self, variance_threshold=0.95, exclude_cols=None):
         self.variance_threshold = variance_threshold
@@ -273,21 +368,3 @@ class PCAFeatureSelector(BaseEstimator, TransformerMixin):
         X_transformed = pd.concat([X[self.exclude_cols], X_pca_df], axis=1)
 
         return X_transformed
-    
-
-class DatetimeFeatureExtractor(BaseEstimator, TransformerMixin):
-    """Transform DateTime column into usable features"""
-    
-    def fit(self, X, y=None):
-        return self
-    
-    def transform(self, X):
-        X = X.copy()
-        if 'DateTime' in X.columns:
-            X['Year'] = X['DateTime'].dt.year
-            X['Month'] = X['DateTime'].dt.month
-            X['Day'] = X['DateTime'].dt.day
-            X['Hour'] = X['DateTime'].dt.hour
-            X['Minute'] = X['DateTime'].dt.minute
-            X.drop(columns=['DateTime'], inplace=True)
-        return X
