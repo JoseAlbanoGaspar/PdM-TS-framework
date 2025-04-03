@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.decomposition import PCA
+import tsfel
 
 # Default column configuration
 DEFAULT_COLUMN_CONFIG = {
@@ -475,3 +476,132 @@ class PCAFeatureSelector(BaseEstimator, TransformerMixin):
         X_transformed = pd.concat([protected_df, X_pca_df], axis=1)
 
         return X_transformed
+    
+
+
+class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
+    """
+    Extracts features from lagged windows using TSFEL.
+    
+    Parameters
+    ----------
+    n_lags : int, default=2
+        Number of previous timestamps to consider in each window
+    domains : list or str, default=['temporal']
+        TSFEL domains to use for feature extraction
+    column_config : dict, default=None
+        Configuration for column names
+    """
+    def __init__(self, n_lags=2, domains=['temporal'], column_config=None):
+        self.n_lags = n_lags
+        self.domains = domains if isinstance(domains, list) else [domains]
+        self.column_config = column_config or DEFAULT_COLUMN_CONFIG
+        self._cfg = None
+
+    def fit(self, X, y=None):
+        self._cfg = tsfel.get_features_by_domain(self.domains)
+        return self
+
+    def _compute_lagged_features(self, data, numeric_cols):
+        """Extract TSFEL features from lagged windows"""
+        features_by_timestamp = []
+        timestamps = data.index[self.n_lags:]  # Store timestamps for alignment
+        
+        for i in range(self.n_lags, len(data)):
+            timestamp_features = {}
+            
+            for col in numeric_cols:
+                # Get window of previous values
+                window = data[col].iloc[i-self.n_lags:i].values
+                
+                try:
+                    # Extract features from window using TSFEL
+                    features = tsfel.time_series_features_extractor(
+                        self._cfg,
+                        window.reshape(-1, 1),
+                        fs=1.0
+                    )
+                    
+                    # Rename features to include column name
+                    for feat_name in features.columns:
+                        new_name = f"{col}_{feat_name}"
+                        timestamp_features[new_name] = features[feat_name].iloc[0]
+                        
+                except Exception as e:
+                    print(f"Warning: Failed to extract features for {col} at index {i}: {str(e)}")
+                    continue
+            
+            if timestamp_features:
+                features_by_timestamp.append(timestamp_features)
+        
+        if not features_by_timestamp:
+            return pd.DataFrame()
+        
+        # Create DataFrame with aligned timestamps
+        features_df = pd.DataFrame(features_by_timestamp, index=timestamps)
+        return features_df
+
+    def transform(self, X):
+        X = X.copy()
+        primary_key = self.column_config['primary_key']
+        time_col = self.column_config['time_col']
+        protected_cols = self.column_config['protected_cols']
+
+        # Get id columns (all primary key columns except time)
+        id_cols = [col for col in primary_key if col != time_col]
+        
+        # Get numeric columns for feature generation
+        numeric_cols = [col for col in X.select_dtypes(include=[np.number]).columns 
+                       if col not in protected_cols]
+
+        if not id_cols:
+            # Case 1: Single time series
+            X = X.sort_values(by=time_col).set_index(time_col)
+            features_df = self._compute_lagged_features(X, numeric_cols)
+            
+            # Add time index back as column
+            X = X.reset_index()
+            features_df = features_df.reset_index()
+            features_df.columns = [time_col] + list(features_df.columns[1:])
+            
+            # Merge original data with features
+            result = pd.merge(
+                X.iloc[self.n_lags:],
+                features_df,
+                on=time_col,
+                how='left'
+            )
+            
+        else:
+            # Case 2: Multiple time series
+            X = X.sort_values(by=primary_key)
+            results = []
+            
+            for group_key, group in X.groupby(id_cols):
+                # Set datetime as index for feature extraction
+                group_indexed = group.set_index(time_col)
+                features_df = self._compute_lagged_features(group_indexed, numeric_cols)
+                
+                # Add time index back as column
+                features_df = features_df.reset_index()
+                features_df.columns = [time_col] + list(features_df.columns[1:])
+                
+                # Add group identifier(s)
+                if isinstance(group_key, tuple):
+                    for idx, col in enumerate(id_cols):
+                        features_df[col] = group_key[idx]
+                else:
+                    features_df[id_cols[0]] = group_key
+                
+                # Merge with original data
+                group_result = pd.merge(
+                    group.iloc[self.n_lags:],
+                    features_df,
+                    on=primary_key,
+                    how='left'
+                )
+                results.append(group_result)
+            
+            result = pd.concat(results, ignore_index=True)
+
+        return result.sort_values(by=primary_key).reset_index(drop=True)
