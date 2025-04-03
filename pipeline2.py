@@ -41,7 +41,7 @@ class MetaClassifier(BaseEstimator, ClassifierMixin):
         X_actual = X.drop(columns=[self.actual_target_col, 'DateTime'])
         return self.base_estimator.predict_proba(X_actual)
 
-    # TODO AUC -> chamar o predict_proba para obter probabilidades e depois o auc_score
+    # TODO AUC -> chamar o predict_proba para obter probabilidades e depois o auc_score -> DONE
     def score(self, X, y=None):
         y_true = X[self.actual_target_col]
         y_pred = self.predict_proba(X)
@@ -80,11 +80,18 @@ meta_clf = MetaClassifier(
     actual_target_col='event'
 )
 
-# Updated pipeline with wrapper transformers
+# Example usage
+COLUMN_CONFIG = {
+    'primary_key': ['ProcessId', 'DateTime'],
+    'time_col': 'DateTime',
+    'target_col': 'event',
+    'protected_cols': ['ProcessId', 'DateTime', 'event']
+}
+
 pipeline = Pipeline([
-    ('imputation', ImputationWrapper(strategy='interpolate', method='linear')),
-    ('feature_extraction', LagFeatureExtractor()),
-    ('feature_selection', FeatureSelectionWrapper(strategy='correlation')),
+    ('imputation', ImputationWrapper(strategy='interpolate', column_config=COLUMN_CONFIG)),
+    ('feature_extraction', LagFeatureExtractor(n_lags=2, column_config=COLUMN_CONFIG)),
+    ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG)),
     ('classifier', meta_clf)
 ])
 
@@ -208,5 +215,5 @@ for i, row in worst_params.iterrows():
         print(f"  {param}: {value}")
 
 # Optionally, save full results to CSV for further analysis
-results_df.to_csv(SAVE_FILE, index=False)
+results_df.to_csv(f"results/{SAVE_FILE}", index=False)
 print(f"\nFull results saved to {SAVE_FILE}")
