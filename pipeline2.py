@@ -89,24 +89,31 @@ COLUMN_CONFIG = {
 }
 
 pipeline = Pipeline([
-    ('imputation', ImputationWrapper(strategy='interpolate', column_config=COLUMN_CONFIG)),
+    ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
     ('feature_extraction', LagFeatureExtractor(n_lags=2, column_config=COLUMN_CONFIG)),
     ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG)),
     ('classifier', meta_clf)
 ])
 
-# Updated parameter distribution for RandomizedSearchCV
+imputation_params = [
+    ('interpolate', 'linear'),
+    ('interpolate', ('polynomial', 2)),
+    ('interpolate', ('polynomial', 3)),
+    ('interpolate', ('spline', 2)),
+    ('interpolate', ('spline', 3)),
+    ('ffill', None),
+]
+
 param_distributions = {    
     # Imputation parameters
-    'imputation__strategy': ['interpolate', 'ffill'],#, 'bfill'],
-    'imputation__method': ['linear'],#,('polynomial', 2), ('polynomial', 3), ('spline', 2), ('spline', 3)],
-    
+    'imputation__params': imputation_params,
+
+
     'feature_extraction__n_lags': [1, 2, 3, 4, 5],
     
     # Feature selection parameters
     'feature_selection__strategy': ['correlation', 'pca'],
-    'feature_selection__threshold': [0.85, 0.9, 0.95],
-    'feature_selection__variance_threshold': [0.9, 0.95, 0.99],
+    'feature_selection__threshold': [0.85, 0.9, 0.95, 0.99], # this are thresholds for correlation and pca - works for both
     
     # Classifier parameters
     'classifier__base_estimator__max_depth': [3, 5, 7, 9, 11],
@@ -164,12 +171,12 @@ halving_random = HalvingRandomSearchCV(
     n_jobs=-1
 )
 
-# search_strategy = random_search  # Choose the search strategy to use
-# SAVE_FILE = "randomized_search_results.csv"  # File to save results
+search_strategy = random_search  # Choose the search strategy to use
+SAVE_FILE = "randomized_search_results.csv"  # File to save results
 # search_strategy = grid_search  # Uncomment to use GridSearchCV
 # SAVE_FILE = "grid_search_results.csv"  # File to save results
-search_strategy = halving_grid  # Uncomment to use HalvingGridSearchCV
-SAVE_FILE = "halving_grid_search_results.csv"  # File to save results
+# search_strategy = halving_grid  # Uncomment to use HalvingGridSearchCV
+# SAVE_FILE = "halving_grid_search_results.csv"  # File to save results
 # search_strategy = halving_random  # Uncomment to use HalvingRandomSearchCV
 # SAVE_FILE = "halving_random_search_results.csv"  # File to save results
 
