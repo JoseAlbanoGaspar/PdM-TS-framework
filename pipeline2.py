@@ -95,12 +95,18 @@ pipeline = Pipeline([
     ('classifier', meta_clf)
 ])
 
-# Updated parameter distribution for RandomizedSearchCV
+imputation_params = [
+    ('interpolate', 'linear'),
+    ('interpolate', ('polynomial', 2)),
+    ('interpolate', ('polynomial', 3)),
+    ('interpolate', ('spline', 2)),
+    ('interpolate', ('spline', 3)),
+    ('ffill', None),
+]
+
 param_distributions = {    
     # Imputation parameters
-    'imputation__strategy': ['interpolate', 'ffill'],#, 'bfill'],
-    'imputation__method': ['linear'],#,('polynomial', 2), ('polynomial', 3), ('spline', 2), ('spline', 3)],
-    
+    'imputation__params': imputation_params,
     'feature_extraction__n_lags': [1, 2, 3, 4, 5],
     
     # Feature selection parameters

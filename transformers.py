@@ -194,10 +194,10 @@ class ImputationWrapper(BaseEstimator, TransformerMixin):
     column_config : dict, default=None
         Configuration for column names
     """
-    def __init__(self, strategy='interpolate', method='linear', 
+    def __init__(self, params=('interpolate', 'linear'), 
                  event_fill=0, column_config=None):
-        self.strategy = strategy
-        self.method = method
+        self.strategy = params[0]
+        self.method = params[1]
         self.event_fill = event_fill
         self.column_config = column_config or DEFAULT_COLUMN_CONFIG
         self._imputer = None
