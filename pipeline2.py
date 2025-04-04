@@ -41,7 +41,7 @@ class MetaClassifier(BaseEstimator, ClassifierMixin):
         X_actual = X.drop(columns=[self.actual_target_col, 'DateTime'])
         return self.base_estimator.predict_proba(X_actual)
 
-    # TODO AUC -> chamar o predict_proba para obter probabilidades e depois o auc_score
+    # TODO AUC -> chamar o predict_proba para obter probabilidades e depois o auc_score -> DONE
     def score(self, X, y=None):
         y_true = X[self.actual_target_col]
         y_pred = self.predict_proba(X)
@@ -80,26 +80,40 @@ meta_clf = MetaClassifier(
     actual_target_col='event'
 )
 
-# Updated pipeline with wrapper transformers
+# Example usage
+COLUMN_CONFIG = {
+    'primary_key': ['ProcessId', 'DateTime'],
+    'time_col': 'DateTime',
+    'target_col': 'event',
+    'protected_cols': ['ProcessId', 'DateTime', 'event']
+}
+
 pipeline = Pipeline([
-    ('imputation', ImputationWrapper(strategy='interpolate', method='linear')),
-    ('feature_extraction', LagFeatureExtractor()),
-    ('feature_selection', FeatureSelectionWrapper(strategy='correlation')),
+    ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
+    ('feature_extraction', LagFeatureExtractor(n_lags=2, column_config=COLUMN_CONFIG)),
+    ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG)),
     ('classifier', meta_clf)
 ])
 
-# Updated parameter distribution for RandomizedSearchCV
+imputation_params = [
+    ('interpolate', 'linear'),
+    ('interpolate', ('polynomial', 2)),
+    ('interpolate', ('polynomial', 3)),
+    ('interpolate', ('spline', 2)),
+    ('interpolate', ('spline', 3)),
+    ('ffill', None),
+]
+
 param_distributions = {    
     # Imputation parameters
-    'imputation__strategy': ['interpolate', 'ffill'],#, 'bfill'],
-    'imputation__method': ['linear'],#,('polynomial', 2), ('polynomial', 3), ('spline', 2), ('spline', 3)],
-    
+    'imputation__params': imputation_params,
+
+
     'feature_extraction__n_lags': [1, 2, 3, 4, 5],
     
     # Feature selection parameters
     'feature_selection__strategy': ['correlation', 'pca'],
-    'feature_selection__threshold': [0.85, 0.9, 0.95],
-    'feature_selection__variance_threshold': [0.9, 0.95, 0.99],
+    'feature_selection__threshold': [0.85, 0.9, 0.95, 0.99], # this are thresholds for correlation and pca - works for both
     
     # Classifier parameters
     'classifier__base_estimator__max_depth': [3, 5, 7, 9, 11],
@@ -157,12 +171,12 @@ halving_random = HalvingRandomSearchCV(
     n_jobs=-1
 )
 
-# search_strategy = random_search  # Choose the search strategy to use
-# SAVE_FILE = "randomized_search_results.csv"  # File to save results
+search_strategy = random_search  # Choose the search strategy to use
+SAVE_FILE = "randomized_search_results.csv"  # File to save results
 # search_strategy = grid_search  # Uncomment to use GridSearchCV
 # SAVE_FILE = "grid_search_results.csv"  # File to save results
-search_strategy = halving_grid  # Uncomment to use HalvingGridSearchCV
-SAVE_FILE = "halving_grid_search_results.csv"  # File to save results
+# search_strategy = halving_grid  # Uncomment to use HalvingGridSearchCV
+# SAVE_FILE = "halving_grid_search_results.csv"  # File to save results
 # search_strategy = halving_random  # Uncomment to use HalvingRandomSearchCV
 # SAVE_FILE = "halving_random_search_results.csv"  # File to save results
 
@@ -208,5 +222,5 @@ for i, row in worst_params.iterrows():
         print(f"  {param}: {value}")
 
 # Optionally, save full results to CSV for further analysis
-results_df.to_csv(SAVE_FILE, index=False)
+results_df.to_csv(f"results/{SAVE_FILE}", index=False)
 print(f"\nFull results saved to {SAVE_FILE}")
