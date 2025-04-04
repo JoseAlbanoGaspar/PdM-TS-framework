@@ -196,6 +196,7 @@ class ImputationWrapper(BaseEstimator, TransformerMixin):
     """
     def __init__(self, params=('interpolate', 'linear'), 
                  event_fill=0, column_config=None):
+        self.params = params
         self.strategy = params[0]
         self.method = params[1]
         self.event_fill = event_fill

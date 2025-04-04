@@ -89,7 +89,7 @@ COLUMN_CONFIG = {
 }
 
 pipeline = Pipeline([
-    ('imputation', ImputationWrapper(strategy='interpolate', column_config=COLUMN_CONFIG)),
+    ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
     ('feature_extraction', LagFeatureExtractor(n_lags=2, column_config=COLUMN_CONFIG)),
     ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG)),
     ('classifier', meta_clf)
@@ -107,6 +107,8 @@ imputation_params = [
 param_distributions = {    
     # Imputation parameters
     'imputation__params': imputation_params,
+
+
     'feature_extraction__n_lags': [1, 2, 3, 4, 5],
     
     # Feature selection parameters
