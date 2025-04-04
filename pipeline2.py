@@ -105,8 +105,7 @@ param_distributions = {
     
     # Feature selection parameters
     'feature_selection__strategy': ['correlation', 'pca'],
-    'feature_selection__threshold': [0.85, 0.9, 0.95],
-    'feature_selection__variance_threshold': [0.9, 0.95, 0.99],
+    'feature_selection__threshold': [0.85, 0.9, 0.95, 0.99], # this are thresholds for correlation and pca - works for both
     
     # Classifier parameters
     'classifier__base_estimator__max_depth': [3, 5, 7, 9, 11],
@@ -164,12 +163,12 @@ halving_random = HalvingRandomSearchCV(
     n_jobs=-1
 )
 
-# search_strategy = random_search  # Choose the search strategy to use
-# SAVE_FILE = "randomized_search_results.csv"  # File to save results
+search_strategy = random_search  # Choose the search strategy to use
+SAVE_FILE = "randomized_search_results.csv"  # File to save results
 # search_strategy = grid_search  # Uncomment to use GridSearchCV
 # SAVE_FILE = "grid_search_results.csv"  # File to save results
-search_strategy = halving_grid  # Uncomment to use HalvingGridSearchCV
-SAVE_FILE = "halving_grid_search_results.csv"  # File to save results
+# search_strategy = halving_grid  # Uncomment to use HalvingGridSearchCV
+# SAVE_FILE = "halving_grid_search_results.csv"  # File to save results
 # search_strategy = halving_random  # Uncomment to use HalvingRandomSearchCV
 # SAVE_FILE = "halving_random_search_results.csv"  # File to save results
 

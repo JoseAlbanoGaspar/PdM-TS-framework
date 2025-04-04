@@ -310,11 +310,9 @@ class FeatureSelectionWrapper(BaseEstimator, TransformerMixin):
     column_config : dict, default=None
         Configuration for column names
     """
-    def __init__(self, strategy='correlation', threshold=0.9, 
-                 variance_threshold=0.95, column_config=None):
+    def __init__(self, strategy='correlation', threshold=0.9, column_config=None):
         self.strategy = strategy
         self.threshold = threshold
-        self.variance_threshold = variance_threshold
         self.column_config = column_config or DEFAULT_COLUMN_CONFIG
         self._selector = None
 
@@ -326,7 +324,7 @@ class FeatureSelectionWrapper(BaseEstimator, TransformerMixin):
             )
         elif self.strategy == 'pca':
             self._selector = PCAFeatureSelector(
-                variance_threshold=self.variance_threshold,
+                variance_threshold=self.threshold,
                 column_config=self.column_config
             )
         else:
