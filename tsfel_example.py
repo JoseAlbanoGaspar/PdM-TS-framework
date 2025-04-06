@@ -43,7 +43,7 @@ print(raw_df[['ProcessId', 'DateTime', 'event']].head())
 print("\nExtracting features...")
 pipeline = Pipeline([
     ('feature_extraction', TSFELLagFeatureExtractor(
-        n_lags=10,
+        n_lags=2,
         domains=['temporal'],  # Using only temporal features for test
         column_config=COLUMN_CONFIG
     ))
