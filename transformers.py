@@ -471,12 +471,10 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
         time_col = self.column_config['time_col']
         protected_cols = self.column_config['protected_cols']
 
-        # Get id columns (all primary key columns except time)
+        # Get id columns and numeric columns
         id_cols = [col for col in primary_key if col != time_col]
-        
-        # Get numeric columns for feature generation
         numeric_cols = [col for col in X.select_dtypes(include=[np.number]).columns 
-                       if col not in protected_cols]
+                    if col not in protected_cols]
 
         if not id_cols:
             # Case 1: Single time series
@@ -490,7 +488,7 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
             
             # Merge original data with features
             result = pd.merge(
-                X.iloc[self.n_lags:],
+                X,  # No slicing here
                 features_df,
                 on=time_col,
                 how='left'
@@ -519,7 +517,7 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
                 
                 # Merge with original data
                 group_result = pd.merge(
-                    group.iloc[self.n_lags:],
+                    group,  # No slicing here
                     features_df,
                     on=primary_key,
                     how='left'

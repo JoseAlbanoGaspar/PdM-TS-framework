@@ -5,7 +5,10 @@ from transformers import TSFELLagFeatureExtractor
 
 # Load dataset and take first 20 rows
 print("Loading data...")
-# raw_df = pd.read_pickle("Datasets/final_dataset.pkl").head(20)
+raw_df = pd.read_pickle("Datasets/final_dataset.pkl").head(20)
+
+
+'''
 # Create synthetic dataset
 dates = pd.date_range(start='2024-01-01', periods=10, freq='H')
 process_ids = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2]
@@ -19,6 +22,7 @@ synthetic_data = {
 }
 
 raw_df = pd.DataFrame(synthetic_data)
+'''
 
 # Define column configuration
 COLUMN_CONFIG = {
@@ -39,7 +43,7 @@ print(raw_df[['ProcessId', 'DateTime', 'event']].head())
 print("\nExtracting features...")
 pipeline = Pipeline([
     ('feature_extraction', TSFELLagFeatureExtractor(
-        n_lags=2,
+        n_lags=10,
         domains=['temporal'],  # Using only temporal features for test
         column_config=COLUMN_CONFIG
     ))
