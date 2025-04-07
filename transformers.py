@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.decomposition import PCA
+from sklearn.impute import SimpleImputer
 import tsfel
 
 # Default column configuration
@@ -441,7 +442,7 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
             windows = np.lib.stride_tricks.sliding_window_view(
                 values,
                 window_shape=self.n_lags
-            )[:-1]  # Exclude last window as it would be incomplete
+            )
             
             # Pre-allocate arrays for features
             for feat_name in self.feature_names:
@@ -460,7 +461,7 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
                         batch_windows,
                         fs=1.0
                     )
-                    
+
                     # Update feature arrays efficiently
                     for feat_name in self.feature_names:
                         feature_columns[f"{col}_{feat_name}"][
@@ -509,4 +510,22 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
                 groups.append(processed_group)
             result = pd.concat(groups, ignore_index=True)
         
-        return result.sort_values(by=primary_key).reset_index(drop=True)
+        # Split data into protected and non-protected columns
+        protected_data = result[protected_cols]
+        non_protected_data = result.drop(columns=protected_cols)
+        
+        # Apply SimpleImputer to non-protected columns
+        imputer = SimpleImputer(strategy='mean')
+        imputed_data = imputer.fit_transform(non_protected_data)
+        
+        # Convert back to DataFrame with original column names
+        imputed_df = pd.DataFrame(
+            imputed_data, 
+            columns=non_protected_data.columns,
+            index=result.index
+        )
+        
+        # Combine protected and imputed data
+        final_result = pd.concat([protected_data, imputed_df], axis=1)
+        
+        return final_result[result.columns]  # Preserve original column order

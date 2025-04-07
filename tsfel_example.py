@@ -1,12 +1,12 @@
 import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
-from transformers import TSFELLagFeatureExtractor
+from transformers import FeatureSelectionWrapper, ImputationWrapper, TSFELLagFeatureExtractor
 
-# Load dataset and take first 20 rows
+# Load dataset
 print("Loading data...")
-raw_df = pd.read_pickle("Datasets/final_dataset.pkl").head(20)
-
+raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
+print(f"Loaded {raw_df.shape[0]} rows and {raw_df.shape[1]} columns.")
 
 '''
 # Create synthetic dataset
@@ -22,8 +22,8 @@ synthetic_data = {
 }
 
 raw_df = pd.DataFrame(synthetic_data)
-'''
 
+'''
 # Define column configuration
 COLUMN_CONFIG = {
     'primary_key': ['ProcessId', 'DateTime'],
@@ -42,12 +42,14 @@ print(raw_df[['ProcessId', 'DateTime', 'event']].head())
 # Create and run pipeline
 print("\nExtracting features...")
 pipeline = Pipeline([
+    ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
     ('feature_extraction', TSFELLagFeatureExtractor(
         n_lags=2,
         domains=['temporal'],  # Using only temporal features for test
         column_config=COLUMN_CONFIG
-    ))
-])
+    )),
+    ('feature_selection', FeatureSelectionWrapper(strategy='pca', column_config=COLUMN_CONFIG))
+    ])
 
 # Transform data
 transformed_df = pipeline.fit_transform(raw_df)

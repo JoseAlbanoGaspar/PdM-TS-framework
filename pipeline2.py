@@ -18,7 +18,8 @@ from transformers import (
     RegularityResampler,
     ImputationWrapper,
     LagFeatureExtractor,
-    FeatureSelectionWrapper
+    FeatureSelectionWrapper,
+    TSFELLagFeatureExtractor
 )
 
 # Meta-modelo that receives the model and ignores a y_dummy
@@ -90,7 +91,11 @@ COLUMN_CONFIG = {
 
 pipeline = Pipeline([
     ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
-    ('feature_extraction', LagFeatureExtractor(n_lags=2, column_config=COLUMN_CONFIG)),
+    ('feature_extraction', TSFELLagFeatureExtractor(
+        n_lags=2,
+        domains=['temporal'],  # Using only temporal features for test
+        column_config=COLUMN_CONFIG
+    )),
     ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG)),
     ('classifier', meta_clf)
 ])
@@ -108,8 +113,9 @@ param_distributions = {
     # Imputation parameters
     'imputation__params': imputation_params,
 
-
-    'feature_extraction__n_lags': [1, 2, 3, 4, 5],
+    # Feature extraction parameters
+    #'feature_extraction__domains': ['temporal', 'frequency', 'statistical'],
+    'feature_extraction__n_lags': [2, 3, 5],
     
     # Feature selection parameters
     'feature_selection__strategy': ['correlation', 'pca'],
@@ -134,11 +140,12 @@ grid_search = GridSearchCV(
 )
 
 # 2. Randomized Search - tries random combinations
+RANDOM_SEARCH_ITERATIONS = 20
 random_search = RandomizedSearchCV(
     pipeline,
     param_distributions,
     cv=cv,
-    n_iter=20,
+    n_iter=RANDOM_SEARCH_ITERATIONS,
     verbose=1,
     return_train_score=True,
     n_jobs=-1
@@ -164,7 +171,7 @@ halving_random = HalvingRandomSearchCV(
     cv=cv,
     n_candidates=20,  # number of parameter settings that are sampled
     factor=3,  # reduction factor
-    resource='n_samples',  # what to reduce
+    resource='n_samples',  # what to reduce -> TRY OTHER RESOURCES -> N_ITERATIONS
     min_resources='exhaust',  # min number of samples
     verbose=1,
     return_train_score=True,
@@ -172,7 +179,7 @@ halving_random = HalvingRandomSearchCV(
 )
 
 search_strategy = random_search  # Choose the search strategy to use
-SAVE_FILE = "randomized_search_results.csv"  # File to save results
+SAVE_FILE = "randomized_search_" + str(RANDOM_SEARCH_ITERATIONS) + "_results.csv"  # File to save results
 # search_strategy = grid_search  # Uncomment to use GridSearchCV
 # SAVE_FILE = "grid_search_results.csv"  # File to save results
 # search_strategy = halving_grid  # Uncomment to use HalvingGridSearchCV
@@ -194,16 +201,30 @@ minutes, seconds = divmod(remainder, 60)
 
 print("\n--- RandomizedSearchCV Results ---")
 print(f"Execution time: {int(hours):02d}h {int(minutes):02d}m {seconds:.2f}s")
-print(f"Best score: {search_strategy.best_score_:.4f}")
-print(f"Test Accuracy: {search_strategy.best_estimator_.score(test_df):.4f}")
+
+
+# Create a DataFrame with all results for better analysis
+results_df = pd.DataFrame(search_strategy.cv_results_)
+
+# Optionally, save full results to CSV for further analysis
+results_df.to_csv(f"results/{SAVE_FILE}", index=False)
+print(f"\nFull results saved to {SAVE_FILE}")
+
+
+# Get the best pipeline and transform the test data
+best_pipeline = search_strategy.best_estimator_
+test_transformed = test_df.copy()
+for name, step in best_pipeline.named_steps.items():
+    test_transformed = step.transform(test_transformed)
+
+# Calculate and print the final score
+print(f"\nTest Accuracy: {best_pipeline.score(test_transformed):.4f}")
+
 
 # Create a nicer display of the best parameters
 print("\n--- Best Parameters ---")
 for param, value in search_strategy.best_params_.items():
     print(f"{param}: {value}")
-
-# Create a DataFrame with all results for better analysis
-results_df = pd.DataFrame(search_strategy.cv_results_)
 
 # Display the top 5 best parameter combinations
 print("\n--- Top 5 Best Parameter Combinations ---")
@@ -221,6 +242,3 @@ for i, row in worst_params.iterrows():
     for param, value in row['params'].items():
         print(f"  {param}: {value}")
 
-# Optionally, save full results to CSV for further analysis
-results_df.to_csv(f"results/{SAVE_FILE}", index=False)
-print(f"\nFull results saved to {SAVE_FILE}")
