@@ -199,7 +199,7 @@ print(f"\nFull results saved to {SAVE_FILE}")
 # Get the best pipeline and transform the test data
 best_pipeline = search_strategy.best_estimator_
 test_transformed = test_df.copy()
-for name, step in best_pipeline.named_steps.items():
+for name, step in best_pipeline.named_steps.items()[:-1]:
     test_transformed = step.transform(test_transformed)
 
 # Calculate and print the final score
