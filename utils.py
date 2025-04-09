@@ -1,5 +1,14 @@
 import pandas as pd
 
+
+DEFAULT_COLUMN_CONFIG = {
+    'primary_key': ['ProcessId', 'DateTime'],
+    'time_col': 'DateTime',
+    'target_col': 'event',
+    'protected_cols': ['ProcessId', 'DateTime', 'event']
+}
+
+
 def train_test_split_by_time(df, time_col='DateTime', id_col='ProcessId', train_ratio=0.7):
     """
     Splits the dataset into training and testing sets based on time.

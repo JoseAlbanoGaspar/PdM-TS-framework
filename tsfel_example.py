@@ -95,7 +95,7 @@ X_test, y_test = test_df.drop(columns=['event']), test_df['event']
 feat_extract_config = feature_extraction_preprocessing(train_df, COLUMN_CONFIG)
 
 
-'''
+
 # Define column configuration
 
 
@@ -142,4 +142,3 @@ feature_cols = [col for col in transformed_df.columns
                 if col not in COLUMN_CONFIG['protected_cols']]
 print("\nFirst 3 rows with 5 features:")
 print(transformed_df.head(3))
-'''
