@@ -437,39 +437,35 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
         
         for col in numeric_cols:
             values = group[col].values
-            
             # Create sliding windows using stride tricks for better memory efficiency
             windows = np.lib.stride_tricks.sliding_window_view(
                 values,
                 window_shape=self.n_lags
             )
-            
+
             # Pre-allocate arrays for features
             for feat_name in self.feature_names:
                 feature_columns[f"{col}_{feat_name}"] = np.full(n_rows, np.nan)
             
             # Process windows in batches for better performance
-            batch_size = min(1000, len(windows))
-            for start_idx in range(0, len(windows), batch_size):
-                end_idx = min(start_idx + batch_size, len(windows))
-                batch_windows = windows[start_idx:end_idx]
-                
-                try:
-                    # Extract features for the entire batch at once
-                    features_batch = tsfel.time_series_features_extractor(
-                        self._cfg,
-                        batch_windows,
-                        fs=1.0
-                    )
+            for i in range(len(windows)):
+                # Extract features for each window
+                window = windows[i]
 
-                    # Update feature arrays efficiently
+                try:
+                    features = tsfel.time_series_features_extractor(
+                        self._cfg,
+                        window.reshape(-1, 1),
+                        fs=1.0,
+                    )
+                    #print(f"Extracted features for window {i}:")
+                    #print(features)
+                    # Update feature columns with extracted features
                     for feat_name in self.feature_names:
-                        feature_columns[f"{col}_{feat_name}"][
-                            start_idx + self.n_lags:end_idx + self.n_lags
-                        ] = features_batch[feat_name].values
-                        
+                        feature_columns[f"{col}_{feat_name}"][i + self.n_lags] = features[feat_name].values[0]
                 except Exception as e:
-                    print(f"Error processing batch at index {start_idx}: {e}")
+                    print(f"Error processing window at index {i}: {e}")
+                    print(f"Window shape: {window.shape}, Window values: {window}")
                     continue
         
         # Create features DataFrame all at once
@@ -491,7 +487,9 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
         
         # Get numeric columns excluding protected ones
         numeric_cols = [col for col in X.select_dtypes(include=[np.number]).columns 
-                       if col not in protected_cols]
+                       if col not in protected_cols][:10]
+        
+        print(f"Numeric columns: {numeric_cols}")
         
         # Get id columns
         id_cols = [col for col in primary_key if col != time_col]
@@ -509,7 +507,15 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
                 processed_group = self._process_group(group, numeric_cols)
                 groups.append(processed_group)
             result = pd.concat(groups, ignore_index=True)
-        
+        print(f"Result:\n {result}")
+        # Add this after the print:
+        non_protected_cols = [col for col in result.columns if col not in protected_cols]
+        na_cols = result[non_protected_cols].columns[result[non_protected_cols].isna().any()].tolist()
+        if na_cols:
+            print(f"Columns with NA values:\n{na_cols}")
+            print("\nNA count per column:")
+            print(result[na_cols].isna().sum())
+
         # Split data into protected and non-protected columns
         protected_data = result[protected_cols]
         non_protected_data = result.drop(columns=protected_cols)
