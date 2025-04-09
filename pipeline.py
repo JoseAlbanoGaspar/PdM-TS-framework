@@ -22,6 +22,8 @@ from transformers import (
     TSFELLagFeatureExtractor
 )
 
+from utils import train_test_split_by_time
+
 # Meta-modelo that receives the model and ignores a y_dummy
 class MetaClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, base_estimator, actual_target_col='event'):
@@ -47,23 +49,6 @@ class MetaClassifier(BaseEstimator, ClassifierMixin):
         y_true = X[self.actual_target_col]
         y_pred = self.predict_proba(X)
         return roc_auc_score(y_true, y_pred[:, 1])
-
-def train_test_split_by_time(df, time_col='DateTime', id_col='ProcessId', train_ratio=0.7):
-    """
-    Splits the dataset into training and testing sets based on time.
-    """
-    train_list, test_list = [], []
-
-    for process_id, group in df.groupby(id_col):
-        group = group.sort_values(by=time_col)
-        split_idx = int(len(group) * train_ratio)
-        train_list.append(group.iloc[:split_idx])
-        test_list.append(group.iloc[split_idx:])
-
-    train_df = pd.concat(train_list).reset_index(drop=True)
-    test_df = pd.concat(test_list).reset_index(drop=True)
-
-    return train_df, test_df
 
 
 # Load dataset
