@@ -81,6 +81,8 @@ synthetic_data = {
 
 raw_df = pd.DataFrame(synthetic_data)
 '''
+
+# Define column configuration
 COLUMN_CONFIG = {
     'primary_key': ['ProcessId', 'DateTime'],
     'time_col': 'DateTime',
@@ -88,7 +90,7 @@ COLUMN_CONFIG = {
     'protected_cols': ['ProcessId', 'DateTime', 'event']
 }
 
-train_df, test_df = train_test_split_by_time(raw_df, time_col='DateTime', id_col='ProcessId', train_ratio=0.7)
+train_df, test_df = train_test_split_by_time(raw_df, time_col='DateTime', id_col='ProcessId', train_ratio=0.2)
 X_train, y_train = train_df.drop(columns=['event']), train_df['event']
 X_test, y_test = test_df.drop(columns=['event']), test_df['event']
 
@@ -96,9 +98,8 @@ feat_extract_config = feature_extraction_preprocessing(train_df, COLUMN_CONFIG)
 
 
 
-# Define column configuration
 
-
+'''
 # Print initial data info
 print("\nInitial Data:")
 print("-" * 50)
@@ -142,3 +143,4 @@ feature_cols = [col for col in transformed_df.columns
                 if col not in COLUMN_CONFIG['protected_cols']]
 print("\nFirst 3 rows with 5 features:")
 print(transformed_df.head(3))
+'''

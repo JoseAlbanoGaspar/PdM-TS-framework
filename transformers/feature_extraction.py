@@ -177,8 +177,16 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
                 groups.append(processed_group)
             result = pd.concat(groups, ignore_index=True)
         print(f"Result:\n {result}")
+        
         # Add this after the print:
         non_protected_cols = [col for col in result.columns if col not in protected_cols]
+        # Drop columns that are all NA
+        all_na_cols = result[non_protected_cols].columns[result[non_protected_cols].isna().all()].tolist()
+        if all_na_cols:
+            print(f"Dropping columns with all NA values:\n{all_na_cols}")
+            result = result.drop(columns=all_na_cols)
+            non_protected_cols = [col for col in result.columns if col not in protected_cols]
+
         na_cols = result[non_protected_cols].columns[result[non_protected_cols].isna().any()].tolist()
         if na_cols:
             print(f"Columns with NA values:\n{na_cols}")
