@@ -76,15 +76,17 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
     """
     Extracts features from lagged windows using TSFEL.
     """
-    def __init__(self, n_lags=2, domains=['temporal'], column_config=None):
+    def __init__(self, config_file=None, n_lags=2, domains=['statistical','temporal'], column_config=None, features=None):
         self.n_lags = n_lags
         self.domains = domains if isinstance(domains, list) else [domains]
         self.column_config = column_config or DEFAULT_COLUMN_CONFIG
         self._cfg = None
         self.feature_names = None
+        self.config_file = config_file or tsfel.__path__[0] + "/feature_extraction/features.json"
+        self.features = features
 
     def fit(self, X, y=None):
-        self._cfg = tsfel.get_features_by_domain(self.domains)
+        self._cfg = tsfel.get_features_by_domain(json_path=self.config_file, domain=self.domains)
         # Pre-compute feature names
         sample_window = np.zeros((self.n_lags, 1))
         sample_features = tsfel.time_series_features_extractor(
@@ -154,9 +156,12 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
         time_col = self.column_config['time_col']
         protected_cols = self.column_config['protected_cols']
         
-        # Get numeric columns excluding protected ones
-        numeric_cols = [col for col in X.select_dtypes(include=[np.number]).columns 
-                       if col not in protected_cols][:10]
+        # Get numeric columns excluding protected ones or top features if specified
+        if not self.features:
+            numeric_cols = [col for col in X.select_dtypes(include=[np.number]).columns 
+                        if col not in protected_cols][:10]
+        else:
+            numeric_cols = self.features
         
         print(f"Numeric columns: {numeric_cols}")
         
@@ -211,4 +216,5 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
         # Combine protected and imputed data
         final_result = pd.concat([protected_data, imputed_df], axis=1)
         
+        print("Feature names:\n", self.feature_names)
         return final_result[result.columns]  # Preserve original column order

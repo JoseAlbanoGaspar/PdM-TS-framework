@@ -94,12 +94,9 @@ train_df, test_df = train_test_split_by_time(raw_df, time_col='DateTime', id_col
 X_train, y_train = train_df.drop(columns=['event']), train_df['event']
 X_test, y_test = test_df.drop(columns=['event']), test_df['event']
 
-feat_extract_config = feature_extraction_preprocessing(train_df, COLUMN_CONFIG)
+tsfel_config_file, top_features = feature_extraction_preprocessing(train_df, COLUMN_CONFIG)
 
 
-
-
-'''
 # Print initial data info
 print("\nInitial Data:")
 print("-" * 50)
@@ -113,7 +110,6 @@ pipeline = Pipeline([
     ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
     ('feature_extraction', TSFELLagFeatureExtractor(
         n_lags=8,
-        domains=['statistical'],  # Using only temporal features for test
         column_config=COLUMN_CONFIG
     )),
     ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG))
@@ -143,4 +139,3 @@ feature_cols = [col for col in transformed_df.columns
                 if col not in COLUMN_CONFIG['protected_cols']]
 print("\nFirst 3 rows with 5 features:")
 print(transformed_df.head(3))
-'''
