@@ -95,7 +95,7 @@ def generate_tsfel_config(selected_features=None):
 
     return CONFIG_FILE_LOCATION
 
-def feature_extraction_preprocessing(data, COLUMN_CONFIG):
+def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_features):
     train_df, _ = train_test_split_by_time(data, train_ratio=0.7)
     X_train, y_train = train_df.drop(columns=COLUMN_CONFIG['target_col']), train_df[COLUMN_CONFIG['target_col']]
 
@@ -103,10 +103,9 @@ def feature_extraction_preprocessing(data, COLUMN_CONFIG):
 
     model = train_model(X_train, y_train, clf, COLUMN_CONFIG['protected_cols'])
 
-    top_feature_names = get_top_features(model, X_train, n_features=10)
+    top_feature_names = get_top_features(model, X_train, n_features=n_features)
     subset_features_df = train_df[top_feature_names + COLUMN_CONFIG['protected_cols']]
 
-    print("Top features:", top_feature_names)
 
     # use tsfel transformers to extract features
     pipeline = Pipeline([
@@ -126,7 +125,9 @@ def feature_extraction_preprocessing(data, COLUMN_CONFIG):
     model = train_model(transformed_subset_df, transformed_subset_df[COLUMN_CONFIG['target_col']], clf,  COLUMN_CONFIG['protected_cols'])
     tsfel_feature_names = get_top_features(model, transformed_subset_df) # returns all names
 
-    top_tsfel_features = select_tsfel_features(tsfel_feature_names, n_features=10)
+    top_tsfel_features = select_tsfel_features(tsfel_feature_names, n_features=n_tsfel_features)
+    print("Top tsfel features:", top_tsfel_features)
+    print("Top features:", top_feature_names)
 
     tsfel_config_file = generate_tsfel_config(top_tsfel_features)
 

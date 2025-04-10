@@ -89,13 +89,20 @@ COLUMN_CONFIG = {
     'target_col': 'event',
     'protected_cols': ['ProcessId', 'DateTime', 'event']
 }
+# Configuration for the feature extraction phase
+N_FEATURES = 10
+N_TSFEL_FEATURES = 10
 
 train_df, test_df = train_test_split_by_time(raw_df, time_col='DateTime', id_col='ProcessId', train_ratio=0.2)
 X_train, y_train = train_df.drop(columns=['event']), train_df['event']
 X_test, y_test = test_df.drop(columns=['event']), test_df['event']
 
-tsfel_config_file, top_features = feature_extraction_preprocessing(train_df, COLUMN_CONFIG)
 
+tsfel_config_file, top_features = feature_extraction_preprocessing(train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES)
+
+# hardocded values for testing function feature_extraction_preprocessing()
+#tsfel_config_file = "tsfel_config.json"
+#top_features = ['TPressSettingsObject', 'TPressProdReportThickSrel', 'TPressProdReportDiamVM']
 
 # Print initial data info
 print("\nInitial Data:")
@@ -110,7 +117,9 @@ pipeline = Pipeline([
     ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
     ('feature_extraction', TSFELLagFeatureExtractor(
         n_lags=8,
-        column_config=COLUMN_CONFIG
+        config_file=tsfel_config_file,
+        column_config=COLUMN_CONFIG,
+        features=top_features
     )),
     ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG))
     ])

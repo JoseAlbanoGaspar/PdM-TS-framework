@@ -76,7 +76,7 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
     """
     Extracts features from lagged windows using TSFEL.
     """
-    def __init__(self, config_file=None, n_lags=2, domains=['statistical','temporal'], column_config=None, features=None):
+    def __init__(self, config_file=None, n_lags=4, domains=['statistical','temporal'], column_config=None, features=None):
         self.n_lags = n_lags
         self.domains = domains if isinstance(domains, list) else [domains]
         self.column_config = column_config or DEFAULT_COLUMN_CONFIG
@@ -90,9 +90,10 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
         # Pre-compute feature names
         sample_window = np.zeros((self.n_lags, 1))
         sample_features = tsfel.time_series_features_extractor(
-            self._cfg, sample_window, fs=1.0
+            self._cfg, sample_window, fs=1.0, verbose=0
         )
         self.feature_names = sample_features.columns
+        print(f"Feature names: {self.feature_names}")
         return self
 
     def _process_group(self, group, numeric_cols):
@@ -128,6 +129,7 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
                         self._cfg,
                         window.reshape(-1, 1),
                         fs=1.0,
+                        verbose=0
                     )
                     #print(f"Extracted features for window {i}:")
                     #print(features)
@@ -159,11 +161,11 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
         # Get numeric columns excluding protected ones or top features if specified
         if not self.features:
             numeric_cols = [col for col in X.select_dtypes(include=[np.number]).columns 
-                        if col not in protected_cols][:10]
+                        if col not in protected_cols]
         else:
             numeric_cols = self.features
         
-        print(f"Numeric columns: {numeric_cols}")
+        #print(f"Numeric columns: {numeric_cols}")
         
         # Get id columns
         id_cols = [col for col in primary_key if col != time_col]
@@ -181,8 +183,10 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
                 processed_group = self._process_group(group, numeric_cols)
                 groups.append(processed_group)
             result = pd.concat(groups, ignore_index=True)
-        print(f"Result:\n {result}")
         
+        print(f"Result:\n {result}")
+
+
         # Add this after the print:
         non_protected_cols = [col for col in result.columns if col not in protected_cols]
         # Drop columns that are all NA
@@ -209,12 +213,14 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
         # Convert back to DataFrame with original column names
         imputed_df = pd.DataFrame(
             imputed_data, 
-            columns=non_protected_data.columns,
-            index=result.index
+            columns= non_protected_data.columns,
+            #index=result.index
         )
         
         # Combine protected and imputed data
         final_result = pd.concat([protected_data, imputed_df], axis=1)
         
-        print("Feature names:\n", self.feature_names)
-        return final_result[result.columns]  # Preserve original column order
+        #print("Feature names:\n", self.feature_names)
+        #print("Columns:\n", final_result.columns)
+
+        return final_result # Preserve original column order
