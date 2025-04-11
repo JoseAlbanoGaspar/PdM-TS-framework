@@ -371,7 +371,7 @@
             "function": "tsfel.interq_range",
             "parameters": "",
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Kurtosis": {
             "complexity": "constant",
@@ -379,7 +379,7 @@
             "function": "tsfel.kurtosis",
             "parameters": "",
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Max": {
             "complexity": "constant",
@@ -436,7 +436,7 @@
             "function": "tsfel.pk_pk_distance",
             "parameters": "",
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Root mean square": {
             "complexity": "constant",
@@ -545,7 +545,7 @@
             "function": "tsfel.median_diff",
             "parameters": "",
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Negative turning points": {
             "complexity": "constant",
@@ -572,7 +572,7 @@
             "function": "tsfel.positive_turning",
             "parameters": "",
             "n_features": 1,
-            "use": "no",
+            "use": "yes",
             "tag": "emg"
         },
         "Signal distance": {
@@ -581,7 +581,7 @@
             "function": "tsfel.distance",
             "parameters": "",
             "n_features": 1,
-            "use": "no"
+            "use": "yes"
         },
         "Slope": {
             "complexity": "log",

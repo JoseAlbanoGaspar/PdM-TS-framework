@@ -14,6 +14,7 @@ from sklearn.model_selection import (
 from sklearn.metrics import roc_auc_score
 import time  # Import time module for timing execution
 
+from FE_configuration import feature_extraction_preprocessing
 from transformers import (
     RegularityResampler,
     ImputationWrapper,
@@ -54,19 +55,11 @@ class MetaClassifier(BaseEstimator, ClassifierMixin):
 # Load dataset
 raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
 
-# Split dataset into train & test
-train_df, test_df = train_test_split_by_time(raw_df, train_ratio=0.7)
+# Feature extraction configuration
+N_FEATURES = 10
+N_TSFEL_FEATURES = 10
 
-X_train, y_train = train_df.drop(columns=['event']), train_df['event']
-X_test, y_test = test_df.drop(columns=['event']), test_df['event']
-
-# Create a meta-classifier with decision tree
-meta_clf = MetaClassifier(
-    base_estimator=LGBMClassifier(),
-    actual_target_col='event'
-)
-
-# Example usage
+# Dataset column configuration
 COLUMN_CONFIG = {
     'primary_key': ['ProcessId', 'DateTime'],
     'time_col': 'DateTime',
@@ -74,12 +67,28 @@ COLUMN_CONFIG = {
     'protected_cols': ['ProcessId', 'DateTime', 'event']
 }
 
+# Split dataset into train & test
+train_df, test_df = train_test_split_by_time(raw_df, train_ratio=0.7)
+
+X_train, y_train = train_df.drop(columns=['event']), train_df['event']
+X_test, y_test = test_df.drop(columns=['event']), test_df['event']
+
+tsfel_config_file, top_features = feature_extraction_preprocessing(train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES)
+
+# Create a meta-classifier with decision tree
+meta_clf = MetaClassifier(
+    base_estimator=LGBMClassifier(),
+    actual_target_col='event'
+)
+
 pipeline = Pipeline([
     ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
     ('feature_extraction', TSFELLagFeatureExtractor(
-        n_lags=2,
-        domains=['temporal'],  # Using only temporal features for test
-        column_config=COLUMN_CONFIG
+        n_lags=8,
+        config_file=tsfel_config_file,
+        column_config=COLUMN_CONFIG,
+        features=top_features
+
     )),
     ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG)),
     ('classifier', meta_clf)
@@ -100,7 +109,7 @@ param_distributions = {
 
     # Feature extraction parameters
     #'feature_extraction__domains': ['temporal', 'frequency', 'statistical'],
-    'feature_extraction__n_lags': [2, 3, 5],
+    'feature_extraction__n_lags': [3, 5, 8],
     
     # Feature selection parameters
     'feature_selection__strategy': ['correlation', 'pca'],
@@ -125,7 +134,7 @@ grid_search = GridSearchCV(
 )
 
 # 2. Randomized Search - tries random combinations
-RANDOM_SEARCH_ITERATIONS = 20
+RANDOM_SEARCH_ITERATIONS = 200
 random_search = RandomizedSearchCV(
     pipeline,
     param_distributions,
@@ -199,8 +208,9 @@ print(f"\nFull results saved to {SAVE_FILE}")
 # Get the best pipeline and transform the test data
 best_pipeline = search_strategy.best_estimator_
 test_transformed = test_df.copy()
-for name, step in best_pipeline.named_steps.items()[:-1]:
-    test_transformed = step.transform(test_transformed)
+for name, step in best_pipeline.named_steps.items():
+    if name != 'classifier':
+        test_transformed = step.transform(test_transformed)
 
 # Calculate and print the final score
 print(f"\nTest Accuracy: {best_pipeline.score(test_transformed):.4f}")
