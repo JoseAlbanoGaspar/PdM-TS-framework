@@ -266,7 +266,7 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         # Pre-compute feature names using tsfresh
-        extracted_features = extract_features(X.drop(columns=self.column_config['target_col']), column_id='ProcessId', column_sort="DateTime", n_jobs=0, default_fc_parameters=EfficientFCParameters())
+        extracted_features = extract_features(X.drop(columns=self.column_config['target_col']), column_id=self.column_config['id_col'], column_sort=self.column_config['time_col'], n_jobs=0, default_fc_parameters=EfficientFCParameters())
     
         self.feature_names = ['_' + '__'.join(name.split('__')[1:]) if '__' in name else name for name in extracted_features.columns]
         print(f"Feature names: {self.feature_names}")
@@ -285,8 +285,8 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
         
         for col in numeric_cols:
             values = group[col].values
-            datetime_values = pd.to_numeric(group['DateTime']).values  # Convert datetime to numeric
-            id_values = group['ProcessId'].values  # Get the ProcessId values
+            datetime_values = pd.to_numeric(group[self.column_config['time_col']]).values  # Convert datetime to numeric
+            id_values = group[self.column_config['id_col']].values  # Get the ProcessId values
 
             combined_values = np.column_stack((id_values,datetime_values, values))
             # Create sliding windows using stride tricks for better memory efficiency
@@ -306,7 +306,7 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
                 # Extract features for each window
                 window = windows[i]
                 # generate dataframe with the window values
-                window_df = pd.DataFrame(window, columns=['ProcessId', 'DateTime', col])
+                window_df = pd.DataFrame(window, columns=self.column_config['primary_key'] + [col])
                 print(window_df)
                 
                 

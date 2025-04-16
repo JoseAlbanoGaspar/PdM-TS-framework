@@ -5,7 +5,8 @@ DEFAULT_COLUMN_CONFIG = {
     'primary_key': ['ProcessId', 'DateTime'],
     'time_col': 'DateTime',
     'target_col': 'event',
-    'protected_cols': ['ProcessId', 'DateTime', 'event']
+    'protected_cols': ['ProcessId', 'DateTime', 'event'],
+    'id_col': 'ProcessId',
 }
 
 
