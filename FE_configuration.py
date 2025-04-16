@@ -96,6 +96,7 @@ def generate_tsfel_config(selected_features=None):
     return CONFIG_FILE_LOCATION
 
 def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_features):
+    # Discovering the top features using LightGBM
     train_df, _ = train_test_split_by_time(data, train_ratio=0.7)
     X_train, y_train = train_df.drop(columns=COLUMN_CONFIG['target_col']), train_df[COLUMN_CONFIG['target_col']]
 
@@ -122,6 +123,7 @@ def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_fe
     subset_features_df = subset_features_df.loc[:, ~subset_features_df.columns.duplicated()]
     transformed_subset_df = pipeline.fit_transform(subset_features_df)
 
+    # get top tsfel features
     model = train_model(transformed_subset_df, transformed_subset_df[COLUMN_CONFIG['target_col']], clf,  COLUMN_CONFIG['protected_cols'])
     tsfel_feature_names = get_top_features(model, transformed_subset_df) # returns all names
 
@@ -129,6 +131,7 @@ def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_fe
     print("Top tsfel features:", top_tsfel_features)
     print("Top features:", top_feature_names)
 
+    # generate tsfel config file with the top features
     tsfel_config_file = generate_tsfel_config(top_tsfel_features)
 
     return tsfel_config_file, top_feature_names
