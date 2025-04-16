@@ -95,47 +95,63 @@ def generate_tsfel_config(selected_features=None):
 
     return CONFIG_FILE_LOCATION
 
-def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_features):
-    # Discovering the top features using LightGBM
+def get_top_dataset_features(data, COLUMN_CONFIG, n_features):
+    """Extract top features from the original dataset using LightGBM."""
+    # Split data and prepare for training
     train_df, _ = train_test_split_by_time(data, train_ratio=0.7)
     X_train, y_train = train_df.drop(columns=COLUMN_CONFIG['target_col']), train_df[COLUMN_CONFIG['target_col']]
 
+    # Train model and get top features
     clf = LGBMClassifier()
-
     model = train_model(X_train, y_train, clf, COLUMN_CONFIG['protected_cols'])
-
     top_feature_names = get_top_features(model, X_train, n_features=n_features)
+    
+    return top_feature_names, train_df
+
+def extract_tsfel_features(train_df, top_feature_names, COLUMN_CONFIG, n_tsfel_features):
+    """Extract TSFEL features from the top features."""
+    # Prepare dataset with top features
     subset_features_df = train_df[top_feature_names + COLUMN_CONFIG['protected_cols']]
+    subset_features_df = subset_features_df.loc[:, ~subset_features_df.columns.duplicated()]
 
-
-    # use tsfel transformers to extract features
+    # Create and run TSFEL pipeline
     pipeline = Pipeline([
-    ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
-    ('feature_extraction', TSFELLagFeatureExtractor(
-        n_lags=4,
-        domains=['statistical', 'temporal'], # all available domains 
-        column_config=COLUMN_CONFIG
-    )),
-    ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG))
+        ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
+        ('feature_extraction', TSFELLagFeatureExtractor(
+            n_lags=4,
+            domains=['statistical', 'temporal'],
+            column_config=COLUMN_CONFIG
+        )),
+        ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG))
     ])
 
-    # remove duplicates from the subset_features_df
+    # Transform data and get top TSFEL features
     subset_features_df = subset_features_df.loc[:, ~subset_features_df.columns.duplicated()]
     transformed_subset_df = pipeline.fit_transform(subset_features_df)
-
-    # get top tsfel features
-    model = train_model(transformed_subset_df, transformed_subset_df[COLUMN_CONFIG['target_col']], clf,  COLUMN_CONFIG['protected_cols'])
-    tsfel_feature_names = get_top_features(model, transformed_subset_df) # returns all names
-
+    
+    clf = LGBMClassifier()
+    model = train_model(transformed_subset_df, transformed_subset_df[COLUMN_CONFIG['target_col']], 
+                       clf, COLUMN_CONFIG['protected_cols'])
+    tsfel_feature_names = get_top_features(model, transformed_subset_df)
     top_tsfel_features = select_tsfel_features(tsfel_feature_names, n_features=n_tsfel_features)
-    print("Top tsfel features:", top_tsfel_features)
-    print("Top features:", top_feature_names)
-
-    # generate tsfel config file with the top features
+    
+    # Generate TSFEL config file
     tsfel_config_file = generate_tsfel_config(top_tsfel_features)
+    
+    return tsfel_config_file
 
+def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_features):
+    """Main function that orchestrates the feature extraction process."""
+    # Get top features from original dataset
+    top_feature_names, train_df = get_top_dataset_features(data, COLUMN_CONFIG, n_features)
+    
+    # Extract TSFEL features
+    tsfel_config_file = extract_tsfel_features(train_df, top_feature_names, 
+                                             COLUMN_CONFIG, n_tsfel_features)
+    
+    # Extract TFRESH features
+    
     return tsfel_config_file, top_feature_names
-
 
 
 

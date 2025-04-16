@@ -125,7 +125,7 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
                 feature_columns[f"{col}_{feat_name}"] = np.full(n_rows, np.nan)
             
             # Process windows in batches for better performance
-            for i in range(len(windows)):
+            for i in range(len(windows) - 1):
                 # Extract features for each window
                 window = windows[i]
 
