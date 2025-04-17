@@ -210,7 +210,8 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
         # Split data into protected and non-protected columns
         protected_data = result[protected_cols]
         non_protected_data = result.drop(columns=protected_cols)
-        
+        non_protected_data = non_protected_data.replace([np.inf, -np.inf], [np.finfo(np.float64).max, np.finfo(np.float64).min])
+
         # Apply SimpleImputer to non-protected columns
         imputer = SimpleImputer(strategy='mean')
         imputed_data = imputer.fit_transform(non_protected_data)
@@ -269,7 +270,7 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
         extracted_features = extract_features(X.drop(columns=self.column_config['target_col']), column_id=self.column_config['id_col'], column_sort=self.column_config['time_col'], n_jobs=0, default_fc_parameters=EfficientFCParameters())
     
         self.feature_names = ['_' + '__'.join(name.split('__')[1:]) if '__' in name else name for name in extracted_features.columns]
-        print(f"Feature names: {self.feature_names}")
+        #print(f"Feature names: {self.feature_names}")
         return self
 
     def _process_group(self, group, numeric_cols):
@@ -300,29 +301,31 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
             # Pre-allocate arrays for features
             for feat_name in self.feature_names:
                 feature_columns[f"{col}_{feat_name}"] = np.full(n_rows, np.nan)
-            print(f"Feature columns: {feature_columns}")
-            # Process windows in batches for better performance
+            #print(f"Feature columns: {feature_columns}")
             for i in range(len(windows) - 1):
                 # Extract features for each window
                 window = windows[i]
                 # generate dataframe with the window values
                 window_df = pd.DataFrame(window, columns=self.column_config['primary_key'] + [col])
-                print(window_df)
+                #print(window_df)
                 
-                
-                features = extract_features(
-                    window_df,
-                    column_id='ProcessId',
-                    column_sort='DateTime',
-                    n_jobs=0,
-                    default_fc_parameters=self.default_fc_parameters
-                )
-                print(f"Extracted features for window {i}:")
-                print(features)
-                # Update feature columns with extracted features
-                for feat_name in self.feature_names:
-                        feature_columns[f"{col}_{feat_name}"][i + self.n_lags] = features[f"{col}_{feat_name}"].values[0]
-                
+                try:
+                    features = extract_features(
+                        window_df,
+                        column_id=self.column_config['id_col'],
+                        column_sort=self.column_config['time_col'],
+                        n_jobs=0,
+                        default_fc_parameters=self.default_fc_parameters,
+                        disable_progressbar=True
+                    )
+                    #print(f"Extracted features for window {i}:")
+                    #print(features)
+                    # Update feature columns with extracted features
+                    for feat_name in self.feature_names:
+                            feature_columns[f"{col}_{feat_name}"][i + self.n_lags] = features[f"{col}_{feat_name}"].values[0]
+                except Exception as e:
+                    print(f"Error processing window at index {i}: {e}")
+                    print(f"Window shape: {window.shape}, Window values: {window}")
         
         # Create features DataFrame all at once
         features_df = pd.DataFrame(
@@ -364,7 +367,6 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
                 groups.append(processed_group)
             result = pd.concat(groups, ignore_index=True)
 
-        # Add this after the print:
         non_protected_cols = [col for col in result.columns if col not in protected_cols]
         # Drop columns that are all NA
         all_na_cols = result[non_protected_cols].columns[result[non_protected_cols].isna().all()].tolist()
@@ -375,18 +377,19 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
 
         na_cols = result[non_protected_cols].columns[result[non_protected_cols].isna().any()].tolist()
         if na_cols:
-            print(f"Columns with NA values:\n{na_cols}")
+            #print(f"Columns with NA values:\n{na_cols}")
             print("\nNA count per column:")
             print(result[na_cols].isna().sum())
 
         # Split data into protected and non-protected columns
         protected_data = result[protected_cols]
         non_protected_data = result.drop(columns=protected_cols)
-        
+        non_protected_data = non_protected_data.replace([np.inf, -np.inf], np.nan)
+
         # Apply SimpleImputer to non-protected columns
         imputer = SimpleImputer(strategy='mean')
         imputed_data = imputer.fit_transform(non_protected_data)
-        
+
         # Convert back to DataFrame with original column names
         imputed_df = pd.DataFrame(
             imputed_data, 

@@ -12,8 +12,8 @@ from tsfresh.feature_extraction import  EfficientFCParameters
 
 # Load dataset
 print("Loading data...")
-#raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
-
+raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
+'''
 dates = pd.date_range(start='2024-01-01', periods=10, freq='H')
 process_ids = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1] 
 
@@ -26,8 +26,47 @@ synthetic_data = {
     'event': [0, 0, 0, 1, 0, 0, 0, 1, 0, 0]
 }
 raw_df = pd.DataFrame(synthetic_data)
-timeseries = raw_df.drop(columns=['event'])
+'''
+'''
+# Create synthetic dataset
+dates = pd.date_range(start='2024-01-01', periods=200, freq='H')
+process_ids = [1] * 100 + [2] * 100  # 100 entries for each process ID
 
+# Generate realistic pressure values with some noise and trends
+np.random.seed(42)  # For reproducibility
+base_pressure_1 = 100
+base_pressure_2 = 95
+pressure = []
+temp = []
+# Process 1: Pressure around 100 with gradual increase and noise
+for i in range(200):
+    trend = i * 0.02  # Slight upward trend
+    noise = np.random.normal(0, 1)
+    pressure.append(base_pressure_1 + trend + noise)
+
+# Process 2: Pressure around 95 with periodic behavior and noise
+for i in range(200):
+    periodic = 2 * np.sin(i * 0.1)  # Add periodic behavior
+    noise = np.random.normal(0, 0.8)
+    temp.append(base_pressure_2 + periodic + noise)
+
+# Generate events with some patterns
+events = []
+# Process 1 events: every 20 hours
+events.extend([1 if i % 20 == 19 else 0 for i in range(100)])
+# Process 2 events: every 25 hours
+events.extend([1 if i % 25 == 24 else 0 for i in range(100)])
+
+synthetic_data = {
+    'ProcessId': process_ids,
+    'DateTime': dates,
+    'Pressure': pressure,
+    'Temp': temp,
+    'event': events
+}
+
+raw_df = pd.DataFrame(synthetic_data)
+'''
 # Define column configuration
 COLUMN_CONFIG = {
     'primary_key': ['ProcessId', 'DateTime'],
@@ -36,6 +75,19 @@ COLUMN_CONFIG = {
     'protected_cols': ['ProcessId', 'DateTime', 'event'],
     'id_col': 'ProcessId'
 }
+
+# Configuration for the feature extraction phase
+N_FEATURES = 10
+N_TSFEL_FEATURES = 10
+N_TSFRESH_FEATURES = 10
+
+train_df, test_df = train_test_split_by_time(raw_df, time_col='DateTime', id_col='ProcessId', train_ratio=0.1)
+X_train, y_train = train_df.drop(columns=['event']), train_df['event']
+X_test, y_test = test_df.drop(columns=['event']), test_df['event']
+
+
+tsfel_config_file, top_features = feature_extraction_preprocessing(train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES, N_TSFRESH_FEATURES)
+
 
 # Create and run pipeline
 print("\nExtracting features...")
@@ -53,11 +105,10 @@ pipeline = Pipeline([
 
 # Measure the time taken for the fit_transform operation
 start_time = time.time()
-transformed_df = pipeline.fit_transform(raw_df)
+#transformed_df = pipeline.fit_transform(train_df)
 end_time = time.time()
 
 print("\nExtracted features:")
 print("-" * 50)     
-print(transformed_df.head())
-print(transformed_df.shape)
-
+#print(transformed_df.head())
+#print(transformed_df.shape)

@@ -93,13 +93,14 @@ COLUMN_CONFIG = {
 # Configuration for the feature extraction phase
 N_FEATURES = 10
 N_TSFEL_FEATURES = 10
+N_TSFRESH_FEATURES = 10
 
 train_df, test_df = train_test_split_by_time(raw_df, time_col='DateTime', id_col='ProcessId', train_ratio=0.2)
 X_train, y_train = train_df.drop(columns=['event']), train_df['event']
 X_test, y_test = test_df.drop(columns=['event']), test_df['event']
 
 
-tsfel_config_file, top_features = feature_extraction_preprocessing(train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES)
+tsfel_config_file, top_features = feature_extraction_preprocessing(train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES, N_TSFRESH_FEATURES)
 
 # hardocded values for testing function feature_extraction_preprocessing()
 #tsfel_config_file = "tsfel_config.json"

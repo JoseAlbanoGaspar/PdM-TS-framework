@@ -2,10 +2,12 @@ import json
 import shutil
 from sklearn.pipeline import Pipeline
 import tsfel
-from transformers.feature_extraction import TSFELLagFeatureExtractor
+from tsfresh.feature_extraction import  EfficientFCParameters
+
+from transformers.feature_extraction import TSFELLagFeatureExtractor, TSFreshLagFeatureExtractor
 from transformers.feature_selection import FeatureSelectionWrapper
 from transformers.imputation import ImputationWrapper
-from utils import train_test_split_by_time
+from utils import clean_column_names, restore_column_names, train_test_split_by_time
 from lightgbm import LGBMClassifier
 import numpy as np
 
@@ -15,14 +17,15 @@ def train_model(X_train, y_train, model, protected_cols=None):
     X_train['DateTime'] = X_train['DateTime'].astype('int64')
     
     X_train.drop(columns=protected_cols, inplace=True, errors='ignore')
-  
+
     model.fit(X_train, y_train)
     return model
 
 
-def get_top_features(model, X_train, n_features=None):
+def get_top_features(model, X_train, n_features=None, protected_cols=None):
     feature_importances = model.feature_importances_
-    feature_names = X_train.columns
+    
+    feature_names = [col for col in X_train.columns if col not in protected_cols]
 
     # If n_features is None, use all features
     n_features = len(feature_names) if n_features is None else n_features
@@ -47,6 +50,19 @@ def select_tsfel_features(features, n_features=10):
         if len(tsfel_features) == n_features:
             break
     return tsfel_features
+
+def select_tsfresh_features(features, n_features=10):
+    tsfresh_features = [s for s in features if '__' in s]
+
+    tsfresh_feature_names = [''.join(s.split('__')[1:]) for s in tsfresh_features]
+
+    tsfresh_features = []
+    for feature_name in tsfresh_feature_names:
+        if feature_name not in tsfresh_features:
+            tsfresh_features.append(feature_name)
+        if len(tsfresh_features) == n_features:
+            break
+    return tsfresh_features
 
 def generate_tsfel_config(selected_features=None):
     """
@@ -104,16 +120,20 @@ def get_top_dataset_features(data, COLUMN_CONFIG, n_features):
     # Train model and get top features
     clf = LGBMClassifier()
     model = train_model(X_train, y_train, clf, COLUMN_CONFIG['protected_cols'])
-    top_feature_names = get_top_features(model, X_train, n_features=n_features)
-    
+    top_feature_names = get_top_features(model, X_train, n_features=n_features, protected_cols=COLUMN_CONFIG['protected_cols'])
+    print(f"Top {n_features} features: {top_feature_names}")
     return top_feature_names, train_df
 
-def extract_tsfel_features(train_df, top_feature_names, COLUMN_CONFIG, n_tsfel_features):
-    """Extract TSFEL features from the top features."""
-    # Prepare dataset with top features
+def get_subset_features_df(train_df, top_feature_names, COLUMN_CONFIG):
+    """Extract subset of features from the original dataset based on top features."""
     subset_features_df = train_df[top_feature_names + COLUMN_CONFIG['protected_cols']]
     subset_features_df = subset_features_df.loc[:, ~subset_features_df.columns.duplicated()]
 
+    return subset_features_df
+
+def extract_tsfel_features(subset_features_df, COLUMN_CONFIG, n_tsfel_features):
+    """Extract TSFEL features from the top features."""
+    subset_features_df = subset_features_df.copy()
     # Create and run TSFEL pipeline
     pipeline = Pipeline([
         ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
@@ -126,7 +146,6 @@ def extract_tsfel_features(train_df, top_feature_names, COLUMN_CONFIG, n_tsfel_f
     ])
 
     # Transform data and get top TSFEL features
-    subset_features_df = subset_features_df.loc[:, ~subset_features_df.columns.duplicated()]
     transformed_subset_df = pipeline.fit_transform(subset_features_df)
     
     clf = LGBMClassifier()
@@ -140,17 +159,57 @@ def extract_tsfel_features(train_df, top_feature_names, COLUMN_CONFIG, n_tsfel_f
     
     return tsfel_config_file
 
-def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_features):
+def extract_tsfresh_features(subset_features_df, COLUMN_CONFIG, n_tsfresh_features):
+    """Extract TSFresh features from the top features."""
+    subset_features_df = subset_features_df.copy()
+    # Create and run TSFresh pipeline
+    pipeline = Pipeline([
+        ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
+        ('feature_extraction', TSFreshLagFeatureExtractor(
+            n_lags=4,
+            default_fc_parameters=EfficientFCParameters(),
+            column_config=COLUMN_CONFIG,
+    )),
+        ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG))
+    ])
+
+    # Transform data and get top TSfresh features
+    transformed_subset_df = pipeline.fit_transform(subset_features_df)
+        
+    clf = LGBMClassifier()
+
+    transformed_subset_df, column_mapping = clean_column_names(transformed_subset_df)
+    
+    for col in transformed_subset_df:
+        print(col)
+
+    model = train_model(transformed_subset_df, transformed_subset_df[COLUMN_CONFIG['target_col']], 
+                       clf, COLUMN_CONFIG['protected_cols'])
+    
+    tsfresh_feature_names = get_top_features(model=model, X_train=transformed_subset_df, protected_cols=COLUMN_CONFIG['protected_cols'])
+    print(f"Top {n_tsfresh_features} features: {tsfresh_feature_names}")
+    transformed_tsfresh_feature_names = restore_column_names(tsfresh_feature_names, column_mapping)
+    print(f"Top {n_tsfresh_features} features: {transformed_tsfresh_feature_names}")
+    final_tsfresh_features = select_tsfresh_features(transformed_tsfresh_feature_names, n_features=n_tsfresh_features)
+    print(f"Final TSFresh features: {final_tsfresh_features}")
+
+
+
+
+def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_features, n_tsfresh_features):
     """Main function that orchestrates the feature extraction process."""
     # Get top features from original dataset
     top_feature_names, train_df = get_top_dataset_features(data, COLUMN_CONFIG, n_features)
     
+    subset_features_df = get_subset_features_df(train_df, top_feature_names, COLUMN_CONFIG)
+    
+    print(subset_features_df)
     # Extract TSFEL features
-    tsfel_config_file = extract_tsfel_features(train_df, top_feature_names, 
-                                             COLUMN_CONFIG, n_tsfel_features)
+    #tsfel_config_file = extract_tsfel_features(subset_features_df, COLUMN_CONFIG, n_tsfel_features)
+    tsfel_config_file = 'blabla.json' # for testing purposes
     
     # Extract TFRESH features
-    
+    tsfresh_default_param = extract_tsfresh_features(subset_features_df, COLUMN_CONFIG, n_tsfresh_features)
     return tsfel_config_file, top_feature_names
 
 
