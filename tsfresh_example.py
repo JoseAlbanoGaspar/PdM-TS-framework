@@ -86,8 +86,15 @@ X_train, y_train = train_df.drop(columns=['event']), train_df['event']
 X_test, y_test = test_df.drop(columns=['event']), test_df['event']
 
 
-tsfel_config_file, top_features = feature_extraction_preprocessing(train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES, N_TSFRESH_FEATURES)
+tsfel_config_file, top_features, tsfresh_fc_parameters = feature_extraction_preprocessing(train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES, N_TSFRESH_FEATURES)
 
+#tsfresh_features = ['sum_of_reoccurring_data_points', 'cwt_coefficients__coeff_3__w_2__widths_(2, 5, 10, 20)', 'energy_ratio_by_chunks__num_segments_10__segment_focus_1', 'sum_of_reoccurring_values', 'change_quantiles__f_agg_"var"__isabs_False__qh_0.8__ql_0.0', 'sum_values', 'augmented_dickey_fuller__attr_"teststat"__autolag_"AIC"', 'benford_correlation', 'energy_ratio_by_chunks__num_segments_10__segment_focus_2', 'change_quantiles__f_agg_"mean"__isabs_False__qh_0.8__ql_0.2']
+
+#top_features = ['EventCode', 'TPressProdReportHardSrel', 'TPressParameterCode_24.0', 'TPressParameterCode_15.0', 'TPressProdReportThickSrel', 'TPressParameterCode_29.0', 'TPressParameterCode_45.0', 'TPressHardSample1', 'TPressParameterCode_27.0', 'TPressParameterCode_13.0']
+#tsfresh_fc_parameters = {'sum_of_reoccurring_data_points': None, 'cwt_coefficients': [{'coeff': 3, 'w': 2, 'widths': (2.0, 5.0, 10.0, 20.0)}], 'energy_ratio_by_chunks': [{'num_segments': 10, 'segment_focus': 1}, {'num_segments': 10, 'segment_focus': 2}], 'sum_of_reoccurring_values': None, 'change_quantiles': [{'f_agg': 'var', 'isabs': False, 'qh': 0.8, 'ql': 0}, {'f_agg': 'mean', 'isabs': False, 'qh': 0.8, 'ql': 0.2}], 'sum_values': None, 'augmented_dickey_fuller': [{'attr': 'teststat', 'autolag': 'AIC'}], 'benford_correlation': None}
+
+print(top_features)
+print(tsfresh_fc_parameters)
 
 # Create and run pipeline
 print("\nExtracting features...")
@@ -95,20 +102,23 @@ pipeline = Pipeline([
     ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
     ('feature_extraction', TSFreshLagFeatureExtractor(
         n_lags=4,
-        default_fc_parameters=EfficientFCParameters(),
+        default_fc_parameters=tsfresh_fc_parameters,
         column_config=COLUMN_CONFIG,
-        features=None,  # Use all features by default
-        #features=top_features,  # Use top features if available
+        features=top_features
     ))
     #('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG))
     ])
 
 # Measure the time taken for the fit_transform operation
 start_time = time.time()
-#transformed_df = pipeline.fit_transform(train_df)
+transformed_df = pipeline.fit_transform(train_df)
 end_time = time.time()
 
 print("\nExtracted features:")
 print("-" * 50)     
-#print(transformed_df.head())
-#print(transformed_df.shape)
+print(transformed_df.head())
+print(transformed_df.shape)
+
+for col in transformed_df.columns:
+    print(col)
+print("-" * 50)

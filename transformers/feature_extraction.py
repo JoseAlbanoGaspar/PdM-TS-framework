@@ -267,8 +267,8 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         # Pre-compute feature names using tsfresh
-        extracted_features = extract_features(X.drop(columns=self.column_config['target_col']), column_id=self.column_config['id_col'], column_sort=self.column_config['time_col'], n_jobs=0, default_fc_parameters=EfficientFCParameters())
-    
+        extracted_features = extract_features(X.drop(columns=self.column_config['target_col']).head(10), column_id=self.column_config['id_col'], column_sort=self.column_config['time_col'], n_jobs=0, default_fc_parameters=self.default_fc_parameters)
+
         self.feature_names = ['_' + '__'.join(name.split('__')[1:]) if '__' in name else name for name in extracted_features.columns]
         #print(f"Feature names: {self.feature_names}")
         return self
@@ -302,6 +302,7 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
             for feat_name in self.feature_names:
                 feature_columns[f"{col}_{feat_name}"] = np.full(n_rows, np.nan)
             #print(f"Feature columns: {feature_columns}")
+            #print("Windows for column", col, ":\n")
             for i in range(len(windows) - 1):
                 # Extract features for each window
                 window = windows[i]
@@ -316,7 +317,7 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
                         column_sort=self.column_config['time_col'],
                         n_jobs=0,
                         default_fc_parameters=self.default_fc_parameters,
-                        disable_progressbar=True
+                        #disable_progressbar=True
                     )
                     #print(f"Extracted features for window {i}:")
                     #print(features)

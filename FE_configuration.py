@@ -54,7 +54,7 @@ def select_tsfel_features(features, n_features=10):
 def select_tsfresh_features(features, n_features=10):
     tsfresh_features = [s for s in features if '__' in s]
 
-    tsfresh_feature_names = [''.join(s.split('__')[1:]) for s in tsfresh_features]
+    tsfresh_feature_names = ['__'.join(s.split('__')[1:]) for s in tsfresh_features]
 
     tsfresh_features = []
     for feature_name in tsfresh_feature_names:
@@ -131,6 +131,74 @@ def get_subset_features_df(train_df, top_feature_names, COLUMN_CONFIG):
 
     return subset_features_df
 
+def get_custumed_fc_parameters(final_tsfresh_features):
+    fc_parameters = {}
+
+    def convert_value(value):
+        """Helper function to convert string values to appropriate types"""
+        # Remove quotes if they exist
+        if value.startswith('"') and value.endswith('"'):
+            return value[1:-1]
+        
+        # Try converting to tuple if it contains parentheses
+        if '(' in value and ')' in value:
+            try:
+                # Extract numbers from (2, 5, 10, 20) format
+                nums = value.strip('()').split(',')
+                return tuple(float(n.strip()) for n in nums)
+            except:
+                return value
+                
+        # Try converting to float/int
+        try:
+            # Convert to float first
+            float_val = float(value)
+            # If it's a whole number, convert to int
+            if float_val.is_integer():
+                return int(float_val)
+            return float_val
+        except ValueError:
+            # Handle boolean values
+            if value.lower() == 'true':
+                return True
+            if value.lower() == 'false':
+                return False
+            # If all else fails, return original string
+            return value
+
+    for feature_full_name in final_tsfresh_features:
+        feature_name_parts = feature_full_name.split('__')
+        feature_name = feature_name_parts[0]
+        feature_attrs = feature_name_parts[1:]
+
+        # If no attributes, set to None
+        if not feature_attrs:
+            if feature_name not in fc_parameters:
+                fc_parameters[feature_name] = None
+            continue
+
+        # Create attributes dictionary
+        attrs = {}
+        for attr in feature_attrs:
+            attr_parts = attr.split('_')
+            attr_value = attr_parts[-1]
+            attr_name = '_'.join(attr_parts[:-1])
+            # Convert the attribute value to appropriate type
+            attrs[attr_name] = convert_value(attr_value)
+
+        # Handle multiple parameter combinations for same feature
+        if feature_name in fc_parameters:
+            if fc_parameters[feature_name] is None:
+                fc_parameters[feature_name] = [attrs]
+            elif isinstance(fc_parameters[feature_name], list):
+                fc_parameters[feature_name].append(attrs)
+            else:
+                fc_parameters[feature_name] = [fc_parameters[feature_name], attrs]
+        else:
+            fc_parameters[feature_name] = [attrs]
+
+    return fc_parameters
+
 def extract_tsfel_features(subset_features_df, COLUMN_CONFIG, n_tsfel_features):
     """Extract TSFEL features from the top features."""
     subset_features_df = subset_features_df.copy()
@@ -179,22 +247,17 @@ def extract_tsfresh_features(subset_features_df, COLUMN_CONFIG, n_tsfresh_featur
     clf = LGBMClassifier()
 
     transformed_subset_df, column_mapping = clean_column_names(transformed_subset_df)
-    
-    for col in transformed_subset_df:
-        print(col)
 
     model = train_model(transformed_subset_df, transformed_subset_df[COLUMN_CONFIG['target_col']], 
                        clf, COLUMN_CONFIG['protected_cols'])
     
     tsfresh_feature_names = get_top_features(model=model, X_train=transformed_subset_df, protected_cols=COLUMN_CONFIG['protected_cols'])
-    print(f"Top {n_tsfresh_features} features: {tsfresh_feature_names}")
     transformed_tsfresh_feature_names = restore_column_names(tsfresh_feature_names, column_mapping)
-    print(f"Top {n_tsfresh_features} features: {transformed_tsfresh_feature_names}")
     final_tsfresh_features = select_tsfresh_features(transformed_tsfresh_feature_names, n_features=n_tsfresh_features)
-    print(f"Final TSFresh features: {final_tsfresh_features}")
 
+    tsfresh_configuration = get_custumed_fc_parameters(final_tsfresh_features)
 
-
+    return tsfresh_configuration
 
 def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_features, n_tsfresh_features):
     """Main function that orchestrates the feature extraction process."""
@@ -209,8 +272,8 @@ def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_fe
     tsfel_config_file = 'blabla.json' # for testing purposes
     
     # Extract TFRESH features
-    tsfresh_default_param = extract_tsfresh_features(subset_features_df, COLUMN_CONFIG, n_tsfresh_features)
-    return tsfel_config_file, top_feature_names
+    tsfresh_fc_parameters = extract_tsfresh_features(subset_features_df, COLUMN_CONFIG, n_tsfresh_features)
+    return tsfel_config_file, top_feature_names, tsfresh_fc_parameters
 
 
 
