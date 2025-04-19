@@ -300,7 +300,7 @@
             "function": "tsfel.abs_energy",
             "parameters": "",
             "n_features": 1,
-            "use": "no",
+            "use": "yes",
             "tag": "audio"
         },
         "Average power": {
@@ -352,7 +352,7 @@
                 "prob": "standard"
             },
             "n_features": 1,
-            "use": "no",
+            "use": "yes",
             "tag": "eeg"
         },
         "Histogram mode": {
@@ -436,7 +436,7 @@
             "function": "tsfel.pk_pk_distance",
             "parameters": "",
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Root mean square": {
             "complexity": "constant",
@@ -503,7 +503,7 @@
                 "fs": 100
             },
             "n_features": 1,
-            "use": "no"
+            "use": "yes"
         },
         "Lempel-Ziv complexity": {
             "complexity": "linear",
@@ -545,7 +545,7 @@
             "function": "tsfel.median_diff",
             "parameters": "",
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Negative turning points": {
             "complexity": "constant",
@@ -564,7 +564,7 @@
                 "n": 10
             },
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Positive turning points": {
             "complexity": "constant",
@@ -572,7 +572,7 @@
             "function": "tsfel.positive_turning",
             "parameters": "",
             "n_features": 1,
-            "use": "no",
+            "use": "yes",
             "tag": "emg"
         },
         "Signal distance": {
@@ -589,7 +589,7 @@
             "function": "tsfel.slope",
             "parameters": "",
             "n_features": 1,
-            "use": "no"
+            "use": "yes"
         },
         "Sum absolute diff": {
             "complexity": "constant",
@@ -597,7 +597,7 @@
             "function": "tsfel.sum_abs_diff",
             "parameters": "",
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Zero crossing rate": {
             "complexity": "constant",
@@ -605,7 +605,7 @@
             "function": "tsfel.zero_cross",
             "parameters": "",
             "n_features": 1,
-            "use": "yes",
+            "use": "no",
             "tag": [
                 "audio",
                 "emg"

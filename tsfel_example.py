@@ -100,7 +100,7 @@ X_train, y_train = train_df.drop(columns=['event']), train_df['event']
 X_test, y_test = test_df.drop(columns=['event']), test_df['event']
 
 
-tsfel_config_file, top_features = feature_extraction_preprocessing(train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES, N_TSFRESH_FEATURES)
+tsfel_config_file, top_features, _ = feature_extraction_preprocessing(train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES, N_TSFRESH_FEATURES)
 
 # hardocded values for testing function feature_extraction_preprocessing()
 #tsfel_config_file = "tsfel_config.json"

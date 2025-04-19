@@ -219,7 +219,7 @@ def extract_tsfel_features(subset_features_df, COLUMN_CONFIG, n_tsfel_features):
     clf = LGBMClassifier()
     model = train_model(transformed_subset_df, transformed_subset_df[COLUMN_CONFIG['target_col']], 
                        clf, COLUMN_CONFIG['protected_cols'])
-    tsfel_feature_names = get_top_features(model, transformed_subset_df)
+    tsfel_feature_names = get_top_features(model, transformed_subset_df, n_features=None, protected_cols=COLUMN_CONFIG['protected_cols'])
     top_tsfel_features = select_tsfel_features(tsfel_feature_names, n_features=n_tsfel_features)
     
     # Generate TSFEL config file
@@ -259,6 +259,8 @@ def extract_tsfresh_features(subset_features_df, COLUMN_CONFIG, n_tsfresh_featur
 
     return tsfresh_configuration
 
+
+
 def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_features, n_tsfresh_features):
     """Main function that orchestrates the feature extraction process."""
     # Get top features from original dataset
@@ -269,7 +271,7 @@ def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_fe
     print(subset_features_df)
     # Extract TSFEL features
     #tsfel_config_file = extract_tsfel_features(subset_features_df, COLUMN_CONFIG, n_tsfel_features)
-    tsfel_config_file = 'blabla.json' # for testing purposes
+    tsfel_config_file = 'tsfel_config.json' # for testing purposes
     
     # Extract TFRESH features
     tsfresh_fc_parameters = extract_tsfresh_features(subset_features_df, COLUMN_CONFIG, n_tsfresh_features)

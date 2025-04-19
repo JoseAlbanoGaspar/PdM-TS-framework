@@ -7,8 +7,7 @@ from sklearn.impute import SimpleImputer
 import tsfel
 
 
-from tsfresh import extract_features, select_features
-from tsfresh.utilities.dataframe_functions import roll_time_series
+from tsfresh import extract_features
 from tsfresh.feature_extraction import  EfficientFCParameters
 
 
