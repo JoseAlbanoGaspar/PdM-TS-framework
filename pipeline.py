@@ -14,12 +14,14 @@ from sklearn.model_selection import (
 from sklearn.metrics import roc_auc_score
 import time  # Import time module for timing execution
 
+from FE_configuration import feature_extraction_preprocessing
 from transformers import (
-    RegularityResampler,
     ImputationWrapper,
-    LagFeatureExtractor,
+    FeatureExtractorWrapper,
     FeatureSelectionWrapper
 )
+
+from utils import train_test_split_by_time
 
 # Meta-modelo that receives the model and ignores a y_dummy
 class MetaClassifier(BaseEstimator, ClassifierMixin):
@@ -47,26 +49,22 @@ class MetaClassifier(BaseEstimator, ClassifierMixin):
         y_pred = self.predict_proba(X)
         return roc_auc_score(y_true, y_pred[:, 1])
 
-def train_test_split_by_time(df, time_col='DateTime', id_col='ProcessId', train_ratio=0.7):
-    """
-    Splits the dataset into training and testing sets based on time.
-    """
-    train_list, test_list = [], []
-
-    for process_id, group in df.groupby(id_col):
-        group = group.sort_values(by=time_col)
-        split_idx = int(len(group) * train_ratio)
-        train_list.append(group.iloc[:split_idx])
-        test_list.append(group.iloc[split_idx:])
-
-    train_df = pd.concat(train_list).reset_index(drop=True)
-    test_df = pd.concat(test_list).reset_index(drop=True)
-
-    return train_df, test_df
-
 
 # Load dataset
 raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
+
+# Feature extraction configuration
+N_FEATURES = 10
+N_TSFEL_FEATURES = 10
+N_TSFRESH_FEATURES = 10
+# Dataset column configuration
+COLUMN_CONFIG = {
+    'primary_key': ['ProcessId', 'DateTime'],
+    'time_col': 'DateTime',
+    'target_col': 'event',
+    'protected_cols': ['ProcessId', 'DateTime', 'event'],
+    'id_col': 'ProcessId',
+}
 
 # Split dataset into train & test
 train_df, test_df = train_test_split_by_time(raw_df, train_ratio=0.7)
@@ -74,23 +72,25 @@ train_df, test_df = train_test_split_by_time(raw_df, train_ratio=0.7)
 X_train, y_train = train_df.drop(columns=['event']), train_df['event']
 X_test, y_test = test_df.drop(columns=['event']), test_df['event']
 
+# shorten the dataset for faster feature extraction preprocessing
+sub_train_df, _ = train_test_split_by_time(raw_df, train_ratio=0.1)
+
+tsfel_config_file, top_features, tsfresh_fc_parameters = feature_extraction_preprocessing(sub_train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES, N_TSFRESH_FEATURES)
+
 # Create a meta-classifier with decision tree
 meta_clf = MetaClassifier(
     base_estimator=LGBMClassifier(),
     actual_target_col='event'
 )
 
-# Example usage
-COLUMN_CONFIG = {
-    'primary_key': ['ProcessId', 'DateTime'],
-    'time_col': 'DateTime',
-    'target_col': 'event',
-    'protected_cols': ['ProcessId', 'DateTime', 'event']
-}
-
 pipeline = Pipeline([
     ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
-    ('feature_extraction', LagFeatureExtractor(n_lags=2, column_config=COLUMN_CONFIG)),
+    ('feature_extraction', FeatureExtractorWrapper(
+        params=('tsfel', {'config_file': tsfel_config_file}),
+        n_lags=8,
+        column_config=COLUMN_CONFIG,
+        features=top_features
+    )),
     ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG)),
     ('classifier', meta_clf)
 ])
@@ -104,13 +104,24 @@ imputation_params = [
     ('ffill', None),
 ]
 
+feature_extraction_params = [
+    ('tsfel', {
+        'config_file': tsfel_config_file,
+    }),
+    ('tsfresh', {
+        'default_fc_parameters': tsfresh_fc_parameters,
+    })
+]
+
 param_distributions = {    
     # Imputation parameters
     'imputation__params': imputation_params,
 
+    # Feature extraction parameters
+    #'feature_extraction__domains': ['temporal', 'frequency', 'statistical'],
+    'feature_extraction__n_lags': [3, 5, 8],
+    'feature_extraction__params': feature_extraction_params,
 
-    'feature_extraction__n_lags': [1, 2, 3, 4, 5],
-    
     # Feature selection parameters
     'feature_selection__strategy': ['correlation', 'pca'],
     'feature_selection__threshold': [0.85, 0.9, 0.95, 0.99], # this are thresholds for correlation and pca - works for both
@@ -134,11 +145,12 @@ grid_search = GridSearchCV(
 )
 
 # 2. Randomized Search - tries random combinations
+RANDOM_SEARCH_ITERATIONS = 200
 random_search = RandomizedSearchCV(
     pipeline,
     param_distributions,
     cv=cv,
-    n_iter=20,
+    n_iter=RANDOM_SEARCH_ITERATIONS,
     verbose=1,
     return_train_score=True,
     n_jobs=-1
@@ -164,7 +176,7 @@ halving_random = HalvingRandomSearchCV(
     cv=cv,
     n_candidates=20,  # number of parameter settings that are sampled
     factor=3,  # reduction factor
-    resource='n_samples',  # what to reduce
+    resource='n_samples',  # what to reduce -> TRY OTHER RESOURCES -> N_ITERATIONS
     min_resources='exhaust',  # min number of samples
     verbose=1,
     return_train_score=True,
@@ -172,7 +184,7 @@ halving_random = HalvingRandomSearchCV(
 )
 
 search_strategy = random_search  # Choose the search strategy to use
-SAVE_FILE = "randomized_search_results.csv"  # File to save results
+SAVE_FILE = "randomized_search_" + str(RANDOM_SEARCH_ITERATIONS) + "_results.csv"  # File to save results
 # search_strategy = grid_search  # Uncomment to use GridSearchCV
 # SAVE_FILE = "grid_search_results.csv"  # File to save results
 # search_strategy = halving_grid  # Uncomment to use HalvingGridSearchCV
@@ -194,16 +206,31 @@ minutes, seconds = divmod(remainder, 60)
 
 print("\n--- RandomizedSearchCV Results ---")
 print(f"Execution time: {int(hours):02d}h {int(minutes):02d}m {seconds:.2f}s")
-print(f"Best score: {search_strategy.best_score_:.4f}")
-print(f"Test Accuracy: {search_strategy.best_estimator_.score(test_df):.4f}")
+
+
+# Create a DataFrame with all results for better analysis
+results_df = pd.DataFrame(search_strategy.cv_results_)
+
+# Optionally, save full results to CSV for further analysis
+results_df.to_csv(f"results/{SAVE_FILE}", index=False)
+print(f"\nFull results saved to {SAVE_FILE}")
+
+
+# Get the best pipeline and transform the test data
+best_pipeline = search_strategy.best_estimator_
+test_transformed = test_df.copy()
+for name, step in best_pipeline.named_steps.items():
+    if name != 'classifier':
+        test_transformed = step.transform(test_transformed)
+
+# Calculate and print the final score
+print(f"\nTest Accuracy: {best_pipeline.score(test_transformed):.4f}")
+
 
 # Create a nicer display of the best parameters
 print("\n--- Best Parameters ---")
 for param, value in search_strategy.best_params_.items():
     print(f"{param}: {value}")
-
-# Create a DataFrame with all results for better analysis
-results_df = pd.DataFrame(search_strategy.cv_results_)
 
 # Display the top 5 best parameter combinations
 print("\n--- Top 5 Best Parameter Combinations ---")
@@ -221,6 +248,3 @@ for i, row in worst_params.iterrows():
     for param, value in row['params'].items():
         print(f"  {param}: {value}")
 
-# Optionally, save full results to CSV for further analysis
-results_df.to_csv(f"results/{SAVE_FILE}", index=False)
-print(f"\nFull results saved to {SAVE_FILE}")
