@@ -371,7 +371,7 @@
             "function": "tsfel.interq_range",
             "parameters": "",
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Kurtosis": {
             "complexity": "constant",
@@ -379,7 +379,7 @@
             "function": "tsfel.kurtosis",
             "parameters": "",
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Max": {
             "complexity": "constant",
@@ -387,7 +387,7 @@
             "function": "tsfel.calc_max",
             "parameters": "",
             "n_features": 1,
-            "use": "no"
+            "use": "yes"
         },
         "Mean": {
             "complexity": "constant",
@@ -404,7 +404,7 @@
             "function": "tsfel.mean_abs_deviation",
             "parameters": "",
             "n_features": 1,
-            "use": "no"
+            "use": "yes"
         },
         "Median": {
             "complexity": "constant",

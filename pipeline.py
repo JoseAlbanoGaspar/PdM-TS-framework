@@ -58,7 +58,7 @@ raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
 # Feature extraction configuration
 N_FEATURES = 10
 N_TSFEL_FEATURES = 10
-
+N_TSFRESH_FEATURES = 10
 # Dataset column configuration
 COLUMN_CONFIG = {
     'primary_key': ['ProcessId', 'DateTime'],
@@ -73,7 +73,7 @@ train_df, test_df = train_test_split_by_time(raw_df, train_ratio=0.7)
 X_train, y_train = train_df.drop(columns=['event']), train_df['event']
 X_test, y_test = test_df.drop(columns=['event']), test_df['event']
 
-tsfel_config_file, top_features = feature_extraction_preprocessing(train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES)
+tsfel_config_file, top_features, tsfresh_fc_parameters = feature_extraction_preprocessing(train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES, N_TSFRESH_FEATURES)
 
 # Create a meta-classifier with decision tree
 meta_clf = MetaClassifier(

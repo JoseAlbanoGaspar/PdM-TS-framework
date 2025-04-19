@@ -4,7 +4,7 @@ from sklearn.pipeline import Pipeline
 from transformers import FeatureSelectionWrapper, ImputationWrapper
 import time
 from FE_configuration import feature_extraction_preprocessing
-from transformers.feature_extraction import TSFreshLagFeatureExtractor
+from transformers.feature_extractors import TSFreshLagFeatureExtractor
 from utils import train_test_split_by_time
 from tsfresh import extract_features, select_features
 from tsfresh.utilities.dataframe_functions import roll_time_series
