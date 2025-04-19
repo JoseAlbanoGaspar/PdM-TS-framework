@@ -16,11 +16,9 @@ import time  # Import time module for timing execution
 
 from FE_configuration import feature_extraction_preprocessing
 from transformers import (
-    RegularityResampler,
     ImputationWrapper,
-    LagFeatureExtractor,
-    FeatureSelectionWrapper,
-    TSFELLagFeatureExtractor
+    FeatureExtractorWrapper,
+    FeatureSelectionWrapper
 )
 
 from utils import train_test_split_by_time
@@ -64,7 +62,8 @@ COLUMN_CONFIG = {
     'primary_key': ['ProcessId', 'DateTime'],
     'time_col': 'DateTime',
     'target_col': 'event',
-    'protected_cols': ['ProcessId', 'DateTime', 'event']
+    'protected_cols': ['ProcessId', 'DateTime', 'event'],
+    'id_col': 'ProcessId',
 }
 
 # Split dataset into train & test
@@ -73,7 +72,10 @@ train_df, test_df = train_test_split_by_time(raw_df, train_ratio=0.7)
 X_train, y_train = train_df.drop(columns=['event']), train_df['event']
 X_test, y_test = test_df.drop(columns=['event']), test_df['event']
 
-tsfel_config_file, top_features, tsfresh_fc_parameters = feature_extraction_preprocessing(train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES, N_TSFRESH_FEATURES)
+# shorten the dataset for faster feature extraction preprocessing
+sub_train_df, _ = train_test_split_by_time(raw_df, train_ratio=0.1)
+
+tsfel_config_file, top_features, tsfresh_fc_parameters = feature_extraction_preprocessing(sub_train_df, COLUMN_CONFIG, N_FEATURES, N_TSFEL_FEATURES, N_TSFRESH_FEATURES)
 
 # Create a meta-classifier with decision tree
 meta_clf = MetaClassifier(
@@ -83,12 +85,11 @@ meta_clf = MetaClassifier(
 
 pipeline = Pipeline([
     ('imputation', ImputationWrapper(params=('interpolate', 'linear'), column_config=COLUMN_CONFIG)),
-    ('feature_extraction', TSFELLagFeatureExtractor(
+    ('feature_extraction', FeatureExtractorWrapper(
+        params=('tsfel', {'config_file': tsfel_config_file}),
         n_lags=8,
-        config_file=tsfel_config_file,
         column_config=COLUMN_CONFIG,
         features=top_features
-
     )),
     ('feature_selection', FeatureSelectionWrapper(strategy='correlation', column_config=COLUMN_CONFIG)),
     ('classifier', meta_clf)
@@ -103,6 +104,15 @@ imputation_params = [
     ('ffill', None),
 ]
 
+feature_extraction_params = [
+    ('tsfel', {
+        'config_file': tsfel_config_file,
+    }),
+    ('tsfresh', {
+        'default_fc_parameters': tsfresh_fc_parameters,
+    })
+]
+
 param_distributions = {    
     # Imputation parameters
     'imputation__params': imputation_params,
@@ -110,7 +120,8 @@ param_distributions = {
     # Feature extraction parameters
     #'feature_extraction__domains': ['temporal', 'frequency', 'statistical'],
     'feature_extraction__n_lags': [3, 5, 8],
-    
+    'feature_extraction__params': feature_extraction_params,
+
     # Feature selection parameters
     'feature_selection__strategy': ['correlation', 'pca'],
     'feature_selection__threshold': [0.85, 0.9, 0.95, 0.99], # this are thresholds for correlation and pca - works for both

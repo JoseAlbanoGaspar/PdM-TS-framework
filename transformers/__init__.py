@@ -2,6 +2,7 @@ from transformers.feature_extractors import LagFeatureExtractor, TSFELLagFeature
 from transformers.feature_selection import FeatureSelectionWrapper
 from transformers.imputation import ImputationWrapper
 from transformers.resampling import RegularityResampler
+from transformers.feature_extraction import FeatureExtractorWrapper
 
 __all__ = [
     'LagFeatureExtractor',
@@ -9,5 +10,6 @@ __all__ = [
     'TSFreshLagFeatureExtractor',
     'FeatureSelectionWrapper',
     'ImputationWrapper',
-    'RegularityResampler'
-]
+    'RegularityResampler',
+    'FeatureExtractorWrapper'
+    ]
