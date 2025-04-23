@@ -110,6 +110,9 @@ feature_extraction_params = [
     }),
     ('tsfresh', {
         'default_fc_parameters': tsfresh_fc_parameters,
+    }),
+    ('pycatch22', {
+        #'pycatch22_features': pycatch22_features ,   # not implemented on the preprocessing cause pycatch is fast
     })
 ]
 

@@ -5,7 +5,6 @@ import numpy as np
 
 from sklearn.impute import SimpleImputer
 
-import pycatch22
 import catch22_C
 
 

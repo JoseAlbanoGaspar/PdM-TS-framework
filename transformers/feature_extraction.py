@@ -1,7 +1,7 @@
 from sklearn.base import BaseEstimator, TransformerMixin
 from transformers.feature_extractors.tsfel import TSFELLagFeatureExtractor
 from transformers.feature_extractors.tsfresh import TSFreshLagFeatureExtractor
-
+from transformers.feature_extractors.pycatch22 import PyCatch22LagFeatureExtractor
 class FeatureExtractorWrapper(BaseEstimator, TransformerMixin):
     def __init__(self, params=None, n_lags=8, column_config=None, features=None):
         self.params = params
@@ -25,6 +25,12 @@ class FeatureExtractorWrapper(BaseEstimator, TransformerMixin):
             self.extractor = TSFreshLagFeatureExtractor(
                 n_lags=self.n_lags,
                 default_fc_parameters=params['default_fc_parameters'],
+                features=self.features,
+                column_config=self.column_config
+            )
+        elif strategy == 'pycatch22':
+            self.extractor = PyCatch22LagFeatureExtractor(
+                n_lags=self.n_lags,
                 features=self.features,
                 column_config=self.column_config
             )
