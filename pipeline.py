@@ -22,6 +22,7 @@ from transformers import (
 )
 
 from utils import train_test_split_by_time
+import json
 
 # Meta-modelo that receives the model and ignores a y_dummy
 class MetaClassifier(BaseEstimator, ClassifierMixin):
@@ -268,6 +269,7 @@ feature_importance_df = pd.DataFrame({
 feature_importance_df = feature_importance_df.sort_values('importance', ascending=False)
 
 feature_importance_df.to_csv(f"{DIRECTORY}/importance_{SAVE_FILE}", index=False)
+print(f"\nFeature_importance stored in importance_{SAVE_FILE}")
 
 print("\n--- Best Model Feature Importances ---")
 print("-" * 50)
@@ -277,6 +279,17 @@ print("-" * 50)
 print(search_strategy.best_params_)
 print(f"\nBest score: {search_strategy.best_score_:.4f}")
 
+
+best_results = {
+    'best_params': search_strategy.best_params_,
+    'best_score': float(search_strategy.best_score_)  # Convert numpy float to Python float for JSON serialization
+}
+
+json_filename = f"{DIRECTORY}/best_results_{SAVE_FILE.replace('.csv', '.json')}"
+with open(json_filename, 'w') as f:
+    json.dump(best_results, f, indent=4)
+
+print(f"\nBest parameters and score saved to {json_filename}")
 
 
 
