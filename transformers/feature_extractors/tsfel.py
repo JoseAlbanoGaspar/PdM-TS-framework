@@ -30,7 +30,7 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
         self.feature_names = sample_features.columns
         print(f"Feature names: {self.feature_names}")
         return self
-
+    
     def _process_group(self, group, numeric_cols):
         """Process a single group of data efficiently using vectorized operations"""
         result = group.copy()

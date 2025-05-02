@@ -300,7 +300,7 @@
             "function": "tsfel.abs_energy",
             "parameters": "",
             "n_features": 1,
-            "use": "yes",
+            "use": "no",
             "tag": "audio"
         },
         "Average power": {
@@ -352,7 +352,7 @@
                 "prob": "standard"
             },
             "n_features": 1,
-            "use": "yes",
+            "use": "no",
             "tag": "eeg"
         },
         "Histogram mode": {
@@ -387,7 +387,7 @@
             "function": "tsfel.calc_max",
             "parameters": "",
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Mean": {
             "complexity": "constant",
@@ -404,7 +404,7 @@
             "function": "tsfel.mean_abs_deviation",
             "parameters": "",
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Median": {
             "complexity": "constant",
@@ -436,7 +436,7 @@
             "function": "tsfel.pk_pk_distance",
             "parameters": "",
             "n_features": 1,
-            "use": "no"
+            "use": "yes"
         },
         "Root mean square": {
             "complexity": "constant",
@@ -444,7 +444,7 @@
             "function": "tsfel.rms",
             "parameters": "",
             "n_features": 1,
-            "use": "no",
+            "use": "yes",
             "tag": [
                 "emg",
                 "inertial"
@@ -464,7 +464,7 @@
             "function": "tsfel.calc_std",
             "parameters": "",
             "n_features": 1,
-            "use": "no"
+            "use": "yes"
         },
         "Variance": {
             "complexity": "constant",
@@ -472,7 +472,7 @@
             "function": "tsfel.calc_var",
             "parameters": "",
             "n_features": 1,
-            "use": "no"
+            "use": "yes"
         }
     },
     "temporal": {
@@ -503,7 +503,7 @@
                 "fs": 100
             },
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Lempel-Ziv complexity": {
             "complexity": "linear",
@@ -553,7 +553,7 @@
             "function": "tsfel.negative_turning",
             "parameters": "",
             "n_features": 1,
-            "use": "yes",
+            "use": "no",
             "tag": "emg"
         },
         "Neighbourhood peaks": {
@@ -581,7 +581,7 @@
             "function": "tsfel.distance",
             "parameters": "",
             "n_features": 1,
-            "use": "no"
+            "use": "yes"
         },
         "Slope": {
             "complexity": "log",
@@ -597,7 +597,7 @@
             "function": "tsfel.sum_abs_diff",
             "parameters": "",
             "n_features": 1,
-            "use": "no"
+            "use": "yes"
         },
         "Zero crossing rate": {
             "complexity": "constant",
@@ -605,7 +605,7 @@
             "function": "tsfel.zero_cross",
             "parameters": "",
             "n_features": 1,
-            "use": "no",
+            "use": "yes",
             "tag": [
                 "audio",
                 "emg"

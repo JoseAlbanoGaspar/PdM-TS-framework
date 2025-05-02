@@ -10,6 +10,7 @@ class FeatureExtractorWrapper(BaseEstimator, TransformerMixin):
         self.features = features
         self.extractor = None
 
+
     def fit(self, X, y=None):
         strategy = self.params[0]  # Get strategy from first element of tuple
         params = self.params[1]    # Get parameters from second element of tuple
@@ -38,6 +39,7 @@ class FeatureExtractorWrapper(BaseEstimator, TransformerMixin):
             raise ValueError(f"Unknown strategy: {strategy}")
         
         return self.extractor.fit(X, y)
+
 
     def transform(self, X):
         return self.extractor.transform(X)

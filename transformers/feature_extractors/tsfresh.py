@@ -20,7 +20,7 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
         self.features = features
         self._selected_features = None
         self.feature_names = None
-
+    
     def fit(self, X, y=None):
         # Pre-compute feature names using tsfresh
         extracted_features = extract_features(X.drop(columns=self.column_config['target_col']).head(10), column_id=self.column_config['id_col'], column_sort=self.column_config['time_col'], n_jobs=0, default_fc_parameters=self.default_fc_parameters)
@@ -73,7 +73,7 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
                         column_sort=self.column_config['time_col'],
                         n_jobs=0,
                         default_fc_parameters=self.default_fc_parameters,
-                        #disable_progressbar=True
+                        disable_progressbar=True
                     )
                     #print(f"Extracted features for window {i}:")
                     #print(features)
@@ -133,10 +133,10 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
             non_protected_cols = [col for col in result.columns if col not in protected_cols]
 
         na_cols = result[non_protected_cols].columns[result[non_protected_cols].isna().any()].tolist()
-        if na_cols:
+        #if na_cols:
             #print(f"Columns with NA values:\n{na_cols}")
-            print("\nNA count per column:")
-            print(result[na_cols].isna().sum())
+            #print("\nNA count per column:")
+            #print(result[na_cols].isna().sum())
 
         # Split data into protected and non-protected columns
         protected_data = result[protected_cols]
@@ -159,6 +159,6 @@ class TSFreshLagFeatureExtractor(BaseEstimator, TransformerMixin):
         
         #print("Feature names:\n", self.feature_names)
         #print("Columns:\n", final_result.columns)
-
+        print("Successfully extracted features using tsfresh")
         return final_result # Preserve original column order
     
