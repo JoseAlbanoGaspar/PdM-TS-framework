@@ -28,7 +28,7 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
             self._cfg, sample_window, fs=1.0, verbose=0
         )
         self.feature_names = sample_features.columns
-        print(f"Feature names: {self.feature_names}")
+        #print(f"Feature names: {self.feature_names}")
         return self
     
     def _process_group(self, group, numeric_cols):
@@ -119,7 +119,7 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
                 groups.append(processed_group)
             result = pd.concat(groups, ignore_index=True)
         
-        print(f"Result:\n {result}")
+        #print(f"Result:\n {result}")
 
 
         # Add this after the print:
@@ -127,15 +127,15 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
         # Drop columns that are all NA
         all_na_cols = result[non_protected_cols].columns[result[non_protected_cols].isna().all()].tolist()
         if all_na_cols:
-            print(f"Dropping columns with all NA values:\n{all_na_cols}")
+            #print(f"Dropping columns with all NA values:\n{all_na_cols}")
             result = result.drop(columns=all_na_cols)
             non_protected_cols = [col for col in result.columns if col not in protected_cols]
 
-        na_cols = result[non_protected_cols].columns[result[non_protected_cols].isna().any()].tolist()
+        '''na_cols = result[non_protected_cols].columns[result[non_protected_cols].isna().any()].tolist()
         if na_cols:
             print(f"Columns with NA values:\n{na_cols}")
             print("\nNA count per column:")
-            print(result[na_cols].isna().sum())
+            print(result[na_cols].isna().sum())'''
 
         # Split data into protected and non-protected columns
         protected_data = result[protected_cols]
@@ -158,6 +158,6 @@ class TSFELLagFeatureExtractor(BaseEstimator, TransformerMixin):
         
         #print("Feature names:\n", self.feature_names)
         #print("Columns:\n", final_result.columns)
-
+        print('Successfully extracted features using TSFEL')
         return final_result # Preserve original column order
     

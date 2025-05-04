@@ -137,8 +137,8 @@ feature_extraction_params = [
 
 feature_extraction_params = [
     
-    ('pycatch22', {
-        #'pycatch22_features': pycatch22_features ,   # not implemented on the preprocessing cause pycatch is fast
+    ('tsfel', {
+        'config_file': tsfel_config_file,
     })
 ]
 
@@ -184,7 +184,7 @@ random_search = RandomizedSearchCV(
     n_iter=RANDOM_SEARCH_ITERATIONS,
     verbose=1,
     return_train_score=True,
-    n_jobs=4,   
+    n_jobs=5,   
     pre_dispatch='2*n_jobs',  # Limit memory usage
     error_score='raise'  # Raise errors instead of crashing
 )
@@ -221,19 +221,19 @@ halving_random = HalvingRandomSearchCV(
     n_jobs=5
 )
 
-#DIRECTORY = "res_tsfel"  # Directory to save results
+DIRECTORY = "res_tsfel"  # Directory to save results
 #DIRECTORY = "res_tsfresh"
-DIRECTORY = "res_pycatch"
+#DIRECTORY = "res_pycatch"
 
 
 #search_strategy = random_search  # Choose the search strategy to use
 #SAVE_FILE = "randomized_search_" + str(RANDOM_SEARCH_ITERATIONS) + "_results.csv"  # File to save results
-#search_strategy = grid_search  # Uncomment to use GridSearchCV
-#SAVE_FILE = "grid_search_results.csv"  # File to save results
+search_strategy = grid_search  # Uncomment to use GridSearchCV
+SAVE_FILE = "grid_search_results.csv"  # File to save results
 #search_strategy = halving_grid  # Uncomment to use HalvingGridSearchCV
 #SAVE_FILE = "halving_grid_search_results.csv"  # File to save results
-search_strategy = halving_random  # Uncomment to use HalvingRandomSearchCV
-SAVE_FILE = "halving_random_search_results.csv"  # File to save results
+#search_strategy = halving_random  # Uncomment to use HalvingRandomSearchCV
+#SAVE_FILE = "halving_random_search_results.csv"  # File to save results
 
 # Measure execution time
 print(f"\n--- Starting {search_strategy.__class__.__name__} fitting ---")
