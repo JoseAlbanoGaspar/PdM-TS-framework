@@ -153,11 +153,11 @@ param_distributions = {
 
     # Feature selection parameters
     'feature_selection__strategy': ['correlation', 'pca'],
-    'feature_selection__threshold': [0.85, 0.9, 0.95, 0.99], # this are thresholds for correlation and pca - works for both
+    'feature_selection__threshold': [0.85, 0.9, 0.95], # this are thresholds for correlation and pca - works for both
     
     # Classifier parameters
-    'classifier__base_estimator__max_depth': [3, 5, 7, 11],
-    'classifier__base_estimator__n_estimators': [50, 100, 200, 300]
+    'classifier__base_estimator__max_depth': [3, 5, 7],
+    'classifier__base_estimator__n_estimators': [25, 50, 100]
     }
 
 # Define the cross-validation strategy
@@ -170,13 +170,13 @@ grid_search = GridSearchCV(
     cv=cv,
     verbose=1,
     return_train_score=True,
-    n_jobs=4,   # Reduce parallel jobs
+    n_jobs=4,   
     pre_dispatch='2*n_jobs',  # Limit memory usage
     error_score='raise'
 )
 
 # 2. Randomized Search - tries random combinations
-RANDOM_SEARCH_ITERATIONS = 5
+RANDOM_SEARCH_ITERATIONS = 100
 random_search = RandomizedSearchCV(
     pipeline,
     param_distributions,
@@ -184,7 +184,7 @@ random_search = RandomizedSearchCV(
     n_iter=RANDOM_SEARCH_ITERATIONS,
     verbose=1,
     return_train_score=True,
-    n_jobs=4,   # Reduce parallel jobs
+    n_jobs=4,   
     pre_dispatch='2*n_jobs',  # Limit memory usage
     error_score='raise'  # Raise errors instead of crashing
 )
@@ -194,39 +194,46 @@ halving_grid = HalvingGridSearchCV(
     pipeline,
     param_distributions,
     cv=cv,
-    factor=3,  # reduction factor
-    resource='n_samples',  # what to reduce
-    min_resources='exhaust',  # min number of samples
+    factor=3,
+    resource='n_samples',
+    min_resources='exhaust',  
+    max_resources='auto',     # control maximum resources
+    aggressive_elimination=False,
     verbose=1,
     return_train_score=True,
-    n_jobs=-1
+    n_jobs=5
 )
 
 # 4. Successive Halving Random Search - combines random search with successive halving
+
 halving_random = HalvingRandomSearchCV(
     pipeline,
     param_distributions,
     cv=cv,
-    n_candidates=20,  # number of parameter settings that are sampled
-    factor=3,  # reduction factor
-    resource='n_samples',  # what to reduce -> TRY OTHER RESOURCES -> N_ITERATIONS
-    min_resources='exhaust',  # min number of samples
+    n_candidates=100,
+    factor=3,
+    resource='n_samples',
+    min_resources='exhaust',
+    max_resources='auto',     
+    aggressive_elimination=False, 
     verbose=1,
     return_train_score=True,
-    n_jobs=-1
+    n_jobs=5
 )
 
-DIRECTORY = "res_pycatch"  # Directory to save results
+#DIRECTORY = "res_tsfel"  # Directory to save results
+#DIRECTORY = "res_tsfresh"
+DIRECTORY = "res_pycatch"
 
 
-search_strategy = random_search  # Choose the search strategy to use
-SAVE_FILE = "randomized_search_" + str(RANDOM_SEARCH_ITERATIONS) + "_results.csv"  # File to save results
+#search_strategy = random_search  # Choose the search strategy to use
+#SAVE_FILE = "randomized_search_" + str(RANDOM_SEARCH_ITERATIONS) + "_results.csv"  # File to save results
 #search_strategy = grid_search  # Uncomment to use GridSearchCV
 #SAVE_FILE = "grid_search_results.csv"  # File to save results
-# search_strategy = halving_grid  # Uncomment to use HalvingGridSearchCV
-# SAVE_FILE = "halving_grid_search_results.csv"  # File to save results
-# search_strategy = halving_random  # Uncomment to use HalvingRandomSearchCV
-# SAVE_FILE = "halving_random_search_results.csv"  # File to save results
+#search_strategy = halving_grid  # Uncomment to use HalvingGridSearchCV
+#SAVE_FILE = "halving_grid_search_results.csv"  # File to save results
+search_strategy = halving_random  # Uncomment to use HalvingRandomSearchCV
+SAVE_FILE = "halving_random_search_results.csv"  # File to save results
 
 # Measure execution time
 print(f"\n--- Starting {search_strategy.__class__.__name__} fitting ---")
