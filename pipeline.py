@@ -137,8 +137,8 @@ feature_extraction_params = [
 
 feature_extraction_params = [
     
-    ('tsfel', {
-        'config_file': tsfel_config_file,
+    ('tsfresh', {
+        'default_fc_parameters': tsfresh_fc_parameters,
     })
 ]
 
@@ -221,8 +221,8 @@ halving_random = HalvingRandomSearchCV(
     n_jobs=5
 )
 
-DIRECTORY = "res_tsfel"  # Directory to save results
-#DIRECTORY = "res_tsfresh"
+#DIRECTORY = "res_tsfel"  # Directory to save results
+DIRECTORY = "res_tsfresh"
 #DIRECTORY = "res_pycatch"
 
 
