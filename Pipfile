@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pandas = "*"
+scikit-learn = "*"
+numpy = "*"
+lightgbm = "*"
+pycatch22 = "*"
+tsfel = "*"
+tsfresh = "*"
+tsfeatures = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.13"

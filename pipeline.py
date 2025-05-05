@@ -152,7 +152,7 @@ param_distributions = {
     'feature_extraction__params': feature_extraction_params,
 
     # Feature selection parameters
-    'feature_selection__strategy': ['correlation', 'pca'],
+    'feature_selection__strategy': ['pca'], # original ['correlation', 'pca']
     'feature_selection__threshold': [0.85, 0.9, 0.95], # this are thresholds for correlation and pca - works for both
     
     # Classifier parameters
@@ -170,7 +170,7 @@ grid_search = GridSearchCV(
     cv=cv,
     verbose=1,
     return_train_score=True,
-    n_jobs=4,   
+    n_jobs=6, # original 4  
     pre_dispatch='2*n_jobs',  # Limit memory usage
     error_score='raise'
 )
@@ -184,7 +184,7 @@ random_search = RandomizedSearchCV(
     n_iter=RANDOM_SEARCH_ITERATIONS,
     verbose=1,
     return_train_score=True,
-    n_jobs=5,   
+    n_jobs=6, # original 5   
     pre_dispatch='2*n_jobs',  # Limit memory usage
     error_score='raise'  # Raise errors instead of crashing
 )
