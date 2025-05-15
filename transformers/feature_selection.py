@@ -25,7 +25,14 @@ class FeatureSelectionWrapper(BaseEstimator, TransformerMixin):
         self.threshold = threshold
         self.column_config = column_config or DEFAULT_COLUMN_CONFIG
         self._selector = None
-
+        self.feature_names = None  # To store feature names after transformation
+    
+    def get_feature_names(self):
+        """Returns the names of the features after transformation."""
+        if not hasattr(self, 'feature_names'):
+            raise AttributeError("Feature names are only available after transforming the transformer.")
+        return self.feature_names
+    
     def fit(self, X, y=None):
         if self.strategy == 'correlation':
             self._selector = CorrelationFeatureSelector(
@@ -46,7 +53,10 @@ class FeatureSelectionWrapper(BaseEstimator, TransformerMixin):
     def transform(self, X):
         if self._selector is None:
             raise ValueError("FeatureSelectionWrapper not fitted")
-        return self._selector.transform(X)
+        
+        ret_value = self._selector.transform(X)
+        self.feature_names = ret_value.columns.tolist()
+        return ret_value
 class CorrelationFeatureSelector(BaseEstimator, TransformerMixin):
     def __init__(self, threshold=0.9, column_config=None):
         self.threshold = threshold

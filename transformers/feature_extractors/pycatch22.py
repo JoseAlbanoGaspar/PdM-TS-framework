@@ -61,9 +61,9 @@ class PyCatch22LagFeatureExtractor(BaseEstimator, TransformerMixin):
                     features = self._catch_n(window, features=self.feature_names)
                     features = {name: value for name, value in zip(features['names'], features['values'])}
 
-                    print(f"Extracted features for window {i}:")
-                    print("Window:\n", window)
-                    print("Features:\n", features)
+                    #print(f"Extracted features for window {i}:")
+                    #print("Window:\n", window)
+                    #print("Features:\n", features)
                     #print(features)
 
                     # Convert features to a dictionary for easier access
@@ -124,10 +124,10 @@ class PyCatch22LagFeatureExtractor(BaseEstimator, TransformerMixin):
             non_protected_cols = [col for col in result.columns if col not in protected_cols]
 
         na_cols = result[non_protected_cols].columns[result[non_protected_cols].isna().any()].tolist()
-        if na_cols:
+        #if na_cols:
             #print(f"Columns with NA values:\n{na_cols}")
-            print("\nNA count per column:")
-            print(result[na_cols].isna().sum())
+            #print("\nNA count per column:")
+            #print(result[na_cols].isna().sum())
 
         # Split data into protected and non-protected columns
         protected_data = result[protected_cols]
@@ -150,7 +150,7 @@ class PyCatch22LagFeatureExtractor(BaseEstimator, TransformerMixin):
         
         #print("Feature names:\n", self.feature_names)
         #print("Columns:\n", final_result.columns)
-
+        print('Suceessfully extracted features from lagged windows using pycatch22.')
         return final_result # Preserve original column order
     
     def _catch_n(self, data, catch24=False, features=None):
