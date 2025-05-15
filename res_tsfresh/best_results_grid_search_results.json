@@ -1,0 +1,55 @@
+{
+    "best_params": {
+        "classifier__base_estimator__max_depth": 3,
+        "classifier__base_estimator__n_estimators": 25,
+        "feature_extraction__n_lags": 3,
+        "feature_extraction__params": [
+            "tsfresh",
+            {
+                "default_fc_parameters": {
+                    "variance_larger_than_standard_deviation": null,
+                    "value_count": [
+                        {
+                            "value": -1
+                        },
+                        {
+                            "value": 1
+                        },
+                        {
+                            "value": 0
+                        }
+                    ],
+                    "time_reversal_asymmetry_statistic": [
+                        {
+                            "lag": 3
+                        },
+                        {
+                            "lag": 2
+                        }
+                    ],
+                    "symmetry_looking": [
+                        {
+                            "r": 0.9500000000000001
+                        },
+                        {
+                            "r": 0.9
+                        },
+                        {
+                            "r": 0.8500000000000001
+                        },
+                        {
+                            "r": 0.8
+                        }
+                    ]
+                }
+            }
+        ],
+        "feature_selection__strategy": "correlation",
+        "feature_selection__threshold": 0.85,
+        "imputation__params": [
+            "interpolate",
+            "linear"
+        ]
+    },
+    "best_score": 0.6305864779101032
+}

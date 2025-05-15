@@ -1,0 +1,21 @@
+{
+    "best_params": {
+        "imputation__params": [
+            "interpolate",
+            [
+                "polynomial",
+                3
+            ]
+        ],
+        "feature_selection__threshold": 0.85,
+        "feature_selection__strategy": "correlation",
+        "feature_extraction__params": [
+            "pycatch22",
+            {}
+        ],
+        "feature_extraction__n_lags": 3,
+        "classifier__base_estimator__n_estimators": 25,
+        "classifier__base_estimator__max_depth": 7
+    },
+    "best_score": 0.6195100967834559
+}

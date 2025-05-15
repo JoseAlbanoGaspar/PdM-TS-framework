@@ -137,8 +137,8 @@ feature_extraction_params = [
 
 feature_extraction_params = [
     
-    ('tsfresh', {
-        'default_fc_parameters': tsfresh_fc_parameters,
+    ('pycatch22', {
+        #'pycatch22_features': pycatch22_features ,   # not implemented on the preprocessing cause pycatch is fast
     })
 ]
 
@@ -152,7 +152,7 @@ param_distributions = {
     'feature_extraction__params': feature_extraction_params,
 
     # Feature selection parameters
-    'feature_selection__strategy': ['correlation', 'pca'],
+    'feature_selection__strategy': ['correlation', 'pca'], #['correlation', 'pca'],
     'feature_selection__threshold': [0.85, 0.9, 0.95], # this are thresholds for correlation and pca - works for both
     
     # Classifier parameters
@@ -170,7 +170,7 @@ grid_search = GridSearchCV(
     cv=cv,
     verbose=1,
     return_train_score=True,
-    n_jobs=4,   
+    n_jobs=5,   
     pre_dispatch='2*n_jobs',  # Limit memory usage
     error_score='raise'
 )
@@ -222,8 +222,8 @@ halving_random = HalvingRandomSearchCV(
 )
 
 #DIRECTORY = "res_tsfel"  # Directory to save results
-DIRECTORY = "res_tsfresh"
-#DIRECTORY = "res_pycatch"
+#DIRECTORY = "res_tsfresh"
+DIRECTORY = "res_pycatch"
 
 
 #search_strategy = random_search  # Choose the search strategy to use
