@@ -1,0 +1,14 @@
+\begin{table}
+\caption{Imputation Analysis}
+\label{tab:imputation_analysis}
+\begin{tabular}{lllll}
+\toprule
+('strategy, params') & test\_score\_mean & test\_score\_std & train\_score\_mean & train\_score\_std \\
+\midrule
+\textbf{('ffill', None)} & 0.5923 & 0.0436 & 0.8896 & 0.0889 \\
+\textbf{('interpolate', 'linear')} & 0.5923 & 0.0436 & 0.8896 & 0.0889 \\
+\textbf{('interpolate', ('polynomial', 2))} & 0.5923 & 0.0436 & 0.8896 & 0.0889 \\
+\textbf{('interpolate', ('spline', 2))} & 0.5923 & 0.0436 & 0.8896 & 0.0889 \\
+\bottomrule
+\end{tabular}
+\end{table}
