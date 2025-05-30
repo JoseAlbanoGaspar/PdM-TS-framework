@@ -300,7 +300,7 @@
             "function": "tsfel.abs_energy",
             "parameters": "",
             "n_features": 1,
-            "use": "no",
+            "use": "yes",
             "tag": "audio"
         },
         "Average power": {
@@ -444,7 +444,7 @@
             "function": "tsfel.rms",
             "parameters": "",
             "n_features": 1,
-            "use": "yes",
+            "use": "no",
             "tag": [
                 "emg",
                 "inertial"
@@ -456,7 +456,7 @@
             "function": "tsfel.skewness",
             "parameters": "",
             "n_features": 1,
-            "use": "yes"
+            "use": "no"
         },
         "Standard deviation": {
             "complexity": "constant",
@@ -503,7 +503,7 @@
                 "fs": 100
             },
             "n_features": 1,
-            "use": "no"
+            "use": "yes"
         },
         "Lempel-Ziv complexity": {
             "complexity": "linear",

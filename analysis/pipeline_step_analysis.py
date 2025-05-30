@@ -38,7 +38,7 @@ def generate_parameter_analysis(results, param_name, param_columns):
         f"\\label{{tab:{param_name}_analysis}}\n"
         "\\begin{tabular}{lllll}\n"
         "\\toprule\n"
-        f"({str(analysis.index.names)[1:-1]}) & test\\_score\\_mean & test\\_score\\_std & train\\_score\\_mean & train\\_score\\_std \\\\\n"
+        f"({str(analysis.index.names)[1:-1]}) & Test Score (Mean) & Test Score (Std. Dev.) & Train Score (Mean) & Train Score (Std. Dev.) \\\\\n"
         "\\midrule\n"
     )
     

@@ -12,12 +12,12 @@ def feature_extraction_preprocessing(data, COLUMN_CONFIG, n_features, n_tsfel_fe
     
     print(subset_features_df)
     # Extract TSFEL features
-    tsfel_config_file = extract_tsfel_features(subset_features_df, COLUMN_CONFIG, n_tsfel_features)
-    #tsfel_config_file = 'tsfel_config.json' # for testing purposes
+    #tsfel_config_file = extract_tsfel_features(subset_features_df, COLUMN_CONFIG, n_tsfel_features)
+    tsfel_config_file = 'tsfel_config.json' # for testing purposes
     
     # Extract TFRESH features
-    tsfresh_fc_parameters = extract_tsfresh_features(subset_features_df, COLUMN_CONFIG, n_tsfresh_features)
-    return tsfel_config_file, top_feature_names, tsfresh_fc_parameters
+    #tsfresh_fc_parameters = extract_tsfresh_features(subset_features_df, COLUMN_CONFIG, n_tsfresh_features)
+    return tsfel_config_file, top_feature_names, {}#tsfresh_fc_parameters
 
 
 

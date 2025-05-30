@@ -1,163 +1,184 @@
 feature,importance
-QProd_0_Skewness,117
-TPressProdReportFCCPVM_0_Slope,93
-TPressThickSample1,92
-QProd,87
-QProd_0_Root mean square,83
-TPressProdReportHardSrel_0_Slope,75
-TPressProdReportHardSrel_0_Root mean square,71
-TPressWeightSample18_0_Slope,71
-TPressProdReportHardSrel_0_Skewness,69
-QProd_0_Slope,68
-TPressProdReportHardSrel,57
-TPressWeightSample18_0_Skewness,47
-TPressProdReportFCCPVM_0_Skewness,44
-TPressParameterCode_15.0,44
-TPressParameterCode_29.0_0_Slope,43
-TPressParameterCode_92.0,43
-TPressParameterCode_24.0_0_Slope,42
-TPressParameterCode_15.0_0_Slope,42
-TPressParameterCode_27.0_0_Slope,41
-TPressParameterCode_29.0_0_Root mean square,41
-TPressParameterCode_45.0_0_Slope,40
-TPressProdReportFCSrel,37
-TPressProdReportThickSrel,36
-TPressParameterCode_6.0,35
-TPressParameterCode_15.0_0_Skewness,35
-TPressParameterCode_13.0_0_Slope,34
-TPressParameterCode_26.0,34
-QProd_0_Peak to peak distance,34
-TPressProdReportHardSrel_0_Peak to peak distance,33
-TPressProdReportFCCPVM,32
-TPressHardSample1,31
-TPressWeightSample11,31
-TPressParameterCode_45.0,31
-TPressParameterCode_14.0,31
-TPressParameterCode_22.0,30
-TPressProdReportHardSrel_0_Signal distance,30
-TPressSetupCode_92,29
-TPressParameterCode_24.0_0_Root mean square,29
-TPressParameterCode_27.0_0_Root mean square,29
-TPressProdReportFCPCVM,28
-TPressParameterCode_49.0,27
-TPressWeightSample18_0_Peak to peak distance,26
-TPressProdReportHardSrel_0_Variance,26
-TPressParameterCode_45.0_0_Skewness,26
-TPressParameterCode_30.0,25
-TPressParameterCode_28.0,24
-TPressParameterCode_27.0,24
-TPressParameterCode_50.0,22
-TPressParameterCode_29.0,21
-QProd_0_Variance,21
-TPressParameterCode_24.0_0_Skewness,21
-TPressParameterCode_46.0,20
-TPressParameterCode_29.0_0_Skewness,19
-TPressParameterCode_19.0,18
-TPressProdReportFCCPVM_0_Variance,17
-TPressParameterCode_8.0,16
-TPressParameterCode_25.0,16
-TPressParameterCode_13.0_0_Skewness,15
-TPressParameterCode_101.0,15
-TPressParameterCode_13.0,15
-TPressParameterCode_24.0_0_Peak to peak distance,13
-TPressSetupCode_18,13
-TPressParameterCode_23.0,13
-TPressParameterCode_5.0,12
-TPressProdReportFCCPVM_0_Peak to peak distance,12
-TPressParameterCode_18.0,12
-TPressParameterCode_24.0,10
-TPressSetupCode_3,9
-TPressParameterCode_29.0_0_Variance,8
-QProd_0_Zero crossing rate,8
-TPressParameterCode_29.0_0_Peak to peak distance,7
-TPressParameterCode_108.0,7
-TPressParameterCode_13.0_0_Peak to peak distance,6
-TPressParameterCode_84.0,6
-TPressParameterCode_45.0_0_Positive turning points,6
-TPressSetupCode_13,5
-TPressSetupCode_117,5
-TPressSetupCode_120,5
-TPressSetupCode_101,5
-TPressParameterCode_27.0_0_Peak to peak distance,5
-TPressParameterCode_27.0_0_Skewness,5
-TPressSetupCode_107,5
-TPressSetupCode_26,5
-TPressSetupCode_8,5
-TPressSetupCode_32,4
-TPressParameterCode_15.0_0_Peak to peak distance,4
-TPressProdReportFCCPVM_0_Positive turning points,4
-TPressSetupCode_4,4
+QProd,24
+TPressParameterCode_101.0,23
+TPressParameterCode_14.0,21
+TPressThickSample1,20
+TPressParameterCode_15.0,18
+TPressParameterCode_6.0,17
+TPressProdReportFCSrel_0_Absolute energy,17
+TPressParameterCode_29.0,16
+TPressParameterCode_92.0,16
+TPressParameterCode_26.0,15
+TPressProdReportFCPCVM,15
+TPressParameterCode_49.0,15
+TPressParameterCode_22.0,15
+TPressParameterCode_27.0,14
+TPressParameterCode_25.0,14
+TPressParameterCode_23.0,14
+TPressParameterCode_45.0,14
+TPressProdReportFCSrel,14
+TPressSetupCode_92,13
+TPressParameterCode_8.0,12
+TPressParameterCode_46.0,12
+TPressParameterCode_30.0,11
+TPressParameterCode_24.0,11
+TPressSetupCode_101,10
+QProd_0_Centroid,10
+TPressSetupCode_13,10
+TPressHardSample1_0_Slope,10
+TPressParameterCode_32.0,8
+TPressProdReportFCSrel_0_Centroid,8
+TPressWeightSample11,8
+TPressParameterCode_15.0_0_Centroid,8
+TPressProdReportThickSrel,8
+TPressParameterCode_19.0,7
+TPressProdReportHardSrel_0_Absolute energy,7
+TPressParameterCode_30.0_0_Centroid,7
+TPressParameterCode_15.0_0_Slope,7
+QProd_0_Slope,7
+TPressSetupCode_68,6
+TPressParameterCode_30.0_0_Slope,6
+TPressProdReportHardSrel,6
+TPressProdReportThickSrel_0_Absolute energy,6
+TPressSetupCode_32,5
+TPressHardSample1_0_Centroid,5
+TPressThickSample8_0_Centroid,5
+TPressProdReportThickSrel_0_Slope,5
+TPressProdReportHardSrel_0_Centroid,5
+TPressHardSample1,5
+TPressParameterCode_15.0_0_Peak to peak distance,5
+TPressParameterCode_18.0,5
+TPressParameterCode_1.0,5
+TPressParameterCode_3.0,5
+TPressProdReportFCCPVM_0_Centroid,5
+TPressProdReportFCSrel_0_Slope,5
+QProd_0_Peak to peak distance,5
+TPressSetupCode_123,4
+TPressParameterCode_28.0,4
+TPressSetupCode_14,4
+TPressProdReportFCCPVM,4
+TPressProdReportHardSrel_0_Slope,4
+TPressParameterCode_50.0,4
 TPressSetupCode_48,4
-TPressSetupCode_74,4
-TPressParameterCode_45.0_0_Peak to peak distance,4
-TPressSetupCode_27,4
-TPressSetupCode_11,4
-TPressSetupCode_123,3
-TPressParameterCode_3.0,3
-TPressSetupCode_28,3
-TPressParameterCode_1.0,3
-TPressParameterCode_32.0,3
-TPressSetupCode_46,3
-TPressSetupCode_24,2
-TPressSetupCode_121,2
-TPressWeightSample18_0_Positive turning points,2
-TPressSetupCode_108,2
-TPressParameterCode_39.0,1
-TPressSetupCode_59,1
-TPressSetupCode_112,1
-TPressSetupCode_122,1
-TPressParameterCode_24.0_0_Signal distance,1
-TPressSetupCode_1,1
-TPressProdReportHardSrel_0_Positive turning points,1
-TPressSetupCode_10,1
-TPressSetupCode_124,1
-TPressSetupCode_79,1
-TPressSetupCode_47,1
-TPressSetupCode_58,1
-TPressSetupCode_30,1
-TPressParameterCode_45.0_0_Variance,1
+TPressSetupCode_6,4
+TPressProdReportThickSrel_0_Peak to peak distance,4
+TPressProdReportThickSrel_0_Centroid,4
+TPressSetupCode_119,4
+TPressSetupCode_47,4
+TPressHardSample1_0_Absolute energy,3
+TPressSetupCode_124,3
+TPressProdReportHardSrel_0_Variance,3
+TPressThickSample8_0_Signal distance,3
+TPressSetupCode_127,2
+TPressSetupCode_4,2
+TPressParameterCode_15.0_0_Variance,2
+TPressSetupCode_69,2
+TPressProdReportFCCPVM_0_Variance,2
+TPressThickSample8_0_Peak to peak distance,2
+TPressParameterCode_30.0_0_Zero crossing rate,2
+TPressWeightSample2_0_Peak to peak distance,2
+TPressHardSample1_0_Variance,2
+TPressSetupCode_117,2
+TPressWeightSample2_0_Centroid,2
+TPressSetupCode_120,2
+TPressSetupCode_22,2
+QProd_0_Variance,2
+TPressSetupCode_108,1
+TPressSetupCode_107,1
+TPressSetupCode_185,1
+TPressParameterCode_11.0,1
+TPressProdReportFCCPVM_0_Peak to peak distance,1
+TPressSetupCode_121,1
+TPressProdReportFCSrel_0_Variance,1
+TPressParameterCode_10.0,1
+TPressSetupCode_24,1
+TPressHardSample1_0_Peak to peak distance,1
+TPressWeightSample2_0_Positive turning points,1
+TPressProdReportFCSrel_0_Peak to peak distance,1
+TPressSetupCode_46,1
 TPressSetupCode_45,1
-TPressSetupCode_7,1
-TPressSetupCode_69,1
+TPressProdReportHardSrel_0_Positive turning points,0
+TPressSetupCode_128,0
+TPressHardSample1_0_Positive turning points,0
+TPressSetupCode_163,0
+TPressSetupCode_139,0
+TPressSetupCode_125,0
+TPressSetupCode_165,0
+TPressHardSample1_0_Zero crossing rate,0
+QProd_0_Positive turning points,0
+TPressProdReportFCSrel_0_Zero crossing rate,0
+TPressSetupCode_126,0
+TPressProdReportFCSrel_0_Positive turning points,0
+TPressSetupCode_164,0
+TPressSetupCode_174,0
+TPressSetupCode_170,0
+TPressParameterCode_30.0_0_Positive turning points,0
+TPressWeightSample2_0_Zero crossing rate,0
+TPressProdReportThickSrel_0_Zero crossing rate,0
+TPressProdReportFCCPVM_0_Zero crossing rate,0
+TPressParameterCode_15.0_0_Positive turning points,0
+TPressProdReportFCCPVM_0_Positive turning points,0
+TPressThickSample8_0_Positive turning points,0
+TPressProdReportThickSrel_0_Positive turning points,0
+TPressParameterCode_15.0_0_Zero crossing rate,0
+TPressThickSample8_0_Zero crossing rate,0
+TPressProdReportHardSrel_0_Peak to peak distance,0
+TPressParameterCode_30.0_0_Peak to peak distance,0
+TPressProdReportHardSrel_0_Zero crossing rate,0
+TPressSetupCode_61,0
+TPressSetupCode_122,0
+TPressSetupCode_16,0
+TPressParameterCode_174.0,0
+TPressSetupCode_7,0
+TPressSetupCode_8,0
+TPressSetupCode_9,0
+TPressSetupCode_10,0
+TPressSetupCode_12,0
+TPressSetupCode_17,0
+TPressSetupCode_114,0
+TPressSetupCode_20,0
+TPressSetupCode_21,0
+TPressSetupCode_23,0
+TPressSetupCode_26,0
+TPressSetupCode_27,0
+TPressSetupCode_29,0
+TPressParameterCode_100.0,0
+TPressParameterCode_86.0,0
+TPressParameterCode_64.0,0
+TPressParameterCode_53.0,0
+TPressParameterCode_52.0,0
 TPressParameterCode_40.0,0
 TPressParameterCode_34.0,0
-TPressParameterCode_100.0,0
-TPressParameterCode_13.0_0_Positive turning points,0
-TPressParameterCode_10.0,0
-TPressParameterCode_24.0_0_Zero crossing rate,0
+TPressParameterCode_33.0,0
+TPressParameterCode_21.0,0
+TPressParameterCode_20.0,0
+TPressParameterCode_17.0,0
+TPressParameterCode_16.0,0
+TPressParameterCode_12.0,0
 TPressParameterCode_4.0,0
-TPressParameterCode_174.0,0
-TPressParameterCode_45.0_0_Zero crossing rate,0
-TPressParameterCode_13.0_0_Zero crossing rate,0
-TPressParameterCode_24.0_0_Positive turning points,0
-QProd_0_Positive turning points,0
 TPressProdReportDiamSrel,0
 TPressProdReportDiamVM,0
 Object,0
-TPressParameterCode_86.0,0
-TPressWeightSample18_0_Zero crossing rate,0
-TPressParameterCode_27.0_0_Positive turning points,0
-TPressParameterCode_64.0,0
-TPressParameterCode_15.0_0_Positive turning points,0
-TPressProdReportFCCPVM_0_Zero crossing rate,0
-TPressParameterCode_21.0,0
-TPressParameterCode_20.0,0
-TPressParameterCode_52.0,0
-TPressParameterCode_53.0,0
-TPressParameterCode_17.0,0
-TPressParameterCode_11.0,0
-TPressParameterCode_15.0_0_Variance,0
-TPressParameterCode_15.0_0_Zero crossing rate,0
-TPressParameterCode_16.0,0
-TPressParameterCode_12.0,0
-TPressProdReportHardSrel_0_Zero crossing rate,0
-TPressParameterCode_33.0,0
-TPressParameterCode_29.0_0_Positive turning points,0
-TPressSetupCode_17,0
-TPressSetupCode_9,0
-TPressSetupCode_62,0
+TPressSetupCode_30,0
+TPressSetupCode_31,0
+TPressSetupCode_33,0
 TPressSetupCode_60,0
-TPressSetupCode_14,0
+TPressSetupCode_111,0
+TPressSetupCode_110,0
+TPressSetupCode_109,0
+TPressSetupCode_105,0
+TPressSetupCode_104,0
+TPressSetupCode_103,0
+TPressSetupCode_102,0
+TPressSetupCode_100,0
+TPressSetupCode_85,0
+TPressSetupCode_83,0
+TPressSetupCode_81,0
+TPressSetupCode_74,0
+TPressSetupCode_64,0
+TPressSetupCode_62,0
+TPressSetupCode_59,0
+TPressSetupCode_34,0
 TPressSetupCode_57,0
 TPressSetupCode_54,0
 TPressSetupCode_53,0
@@ -172,38 +193,4 @@ TPressSetupCode_41,0
 TPressSetupCode_40,0
 TPressSetupCode_38,0
 TPressSetupCode_36,0
-TPressSetupCode_34,0
-TPressSetupCode_33,0
-TPressSetupCode_31,0
-TPressSetupCode_29,0
-TPressSetupCode_23,0
-TPressSetupCode_21,0
-TPressSetupCode_20,0
-TPressSetupCode_61,0
-TPressSetupCode_64,0
-TPressSetupCode_12,0
-TPressSetupCode_68,0
-TPressSetupCode_185,0
-TPressSetupCode_174,0
-TPressSetupCode_170,0
-TPressSetupCode_165,0
-TPressSetupCode_164,0
-TPressSetupCode_163,0
-TPressSetupCode_139,0
-TPressSetupCode_16,0
-TPressSetupCode_127,0
-TPressSetupCode_126,0
-TPressSetupCode_125,0
-TPressSetupCode_119,0
-TPressSetupCode_111,0
-TPressSetupCode_110,0
-TPressSetupCode_109,0
-TPressSetupCode_105,0
-TPressSetupCode_104,0
-TPressSetupCode_103,0
-TPressSetupCode_102,0
-TPressSetupCode_100,0
-TPressSetupCode_85,0
-TPressSetupCode_83,0
-TPressSetupCode_81,0
-TPressSetupCode_128,0
+QProd_0_Zero crossing rate,0
