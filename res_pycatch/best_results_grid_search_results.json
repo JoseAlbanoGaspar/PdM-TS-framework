@@ -1,19 +1,18 @@
 {
     "best_params": {
         "classifier__base_estimator__max_depth": 5,
-        "classifier__base_estimator__n_estimators": 50,
-        "feature_extraction__n_lags": 3,
+        "classifier__base_estimator__n_estimators": 100,
+        "feature_extraction__n_lags": 5,
         "feature_extraction__params": [
             "pycatch22",
             {}
         ],
         "feature_selection__strategy": "correlation",
-        "feature_selection__threshold": 0.95,
+        "feature_selection__threshold": 0.85,
         "imputation__params": [
             "interpolate",
             "linear"
         ]
     },
-    "best_score": 0.6511996699947604,
-    "exec_time": "05h 49m 4.05s"
+    "best_score": 0.6794915702173421
 }

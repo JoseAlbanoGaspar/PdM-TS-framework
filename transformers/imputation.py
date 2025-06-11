@@ -59,7 +59,7 @@ class NAInterpolator(BaseEstimator, TransformerMixin):
         
         return NAHandler.split_and_process(
             X,
-            process_func=lambda df: df.interpolate(**kwargs).ffill().bfill(),
+            process_func=lambda df: df.interpolate(**kwargs),
             column_config=self.column_config,
             event_fill=self.event_fill
         )
@@ -77,7 +77,7 @@ class NAForwardFill(BaseEstimator, TransformerMixin):
     def transform(self, X):
         return NAHandler.split_and_process(
             X,
-            process_func=lambda df: df.ffill().bfill(),
+            process_func=lambda df: df.ffill(),
             column_config=self.column_config,
             event_fill=self.event_fill
         )

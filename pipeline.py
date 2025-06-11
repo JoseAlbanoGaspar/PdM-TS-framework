@@ -55,7 +55,7 @@ tsfel_config_file, top_features, tsfresh_fc_parameters = feature_extraction_prep
 
 # Create a meta-classifier with decision tree
 meta_clf = MetaClassifier(
-    base_estimator=LGBMClassifier(device='gpu'),
+    base_estimator=LGBMClassifier(),
     column_config=COLUMN_CONFIG
 )
 
@@ -74,8 +74,8 @@ pipeline = Pipeline([
 imputation_params = [
     ('interpolate', 'linear'),
     ('interpolate', ('polynomial', 2)),
-    ('interpolate', ('polynomial', 3)),
-    #('interpolate', ('spline', 2)),
+    #('interpolate', ('polynomial', 3)),
+    ('interpolate', ('spline', 2)),
     #('interpolate', ('spline', 3)),
     ('ffill', None),
 ]
@@ -127,13 +127,13 @@ grid_search = GridSearchCV(
     cv=cv,
     verbose=1,
     return_train_score=True,
-    n_jobs=6,   
+    n_jobs=5,   
     pre_dispatch='2*n_jobs',  # Limit memory usage
     error_score='raise'
 )
 
 # 2. Randomized Search - tries random combinations
-RANDOM_SEARCH_ITERATIONS = 2
+RANDOM_SEARCH_ITERATIONS = 100
 random_search = RandomizedSearchCV(
     pipeline,
     param_distributions,
@@ -158,7 +158,7 @@ halving_grid = HalvingGridSearchCV(
     aggressive_elimination=False,
     verbose=1,
     return_train_score=True,
-    n_jobs=6
+    n_jobs=5
 )
 
 # 4. Successive Halving Random Search - combines random search with successive halving
@@ -183,10 +183,10 @@ halving_random = HalvingRandomSearchCV(
 DIRECTORY = "res_pycatch"
 
 
-search_strategy = random_search  # Choose the search strategy to use
-SAVE_FILE = "randomized_search_" + str(RANDOM_SEARCH_ITERATIONS) + "_results.csv"  # File to save results
-#search_strategy = grid_search  # Uncomment to use GridSearchCV
-#SAVE_FILE = "grid_search_results.csv"  # File to save results
+#search_strategy = random_search  # Choose the search strategy to use
+#SAVE_FILE = "randomized_search_" + str(RANDOM_SEARCH_ITERATIONS) + "_results.csv"  # File to save results
+search_strategy = grid_search  # Uncomment to use GridSearchCV
+SAVE_FILE = "grid_search_results.csv"  # File to save results
 #search_strategy = halving_grid  # Uncomment to use HalvingGridSearchCV
 #SAVE_FILE = "halving_grid_search_results.csv"  # File to save results
 #search_strategy = halving_random  # Uncomment to use HalvingRandomSearchCV
@@ -205,8 +205,7 @@ hours, remainder = divmod(execution_time, 3600)
 minutes, seconds = divmod(remainder, 60)
 
 print(f"\n--- {search_strategy.__class__.__name__} Results ---")
-exec_time = f"{int(hours):02d}h {int(minutes):02d}m {seconds:.2f}s"
-print(f"Execution time: {exec_time}")
+print(f"Execution time: {int(hours):02d}h {int(minutes):02d}m {seconds:.2f}s")
 
 
 # Create a DataFrame with all results for better analysis
@@ -247,8 +246,7 @@ print(f"\nBest score: {search_strategy.best_score_:.4f}")
 
 best_results = {
     'best_params': search_strategy.best_params_,
-    'best_score': float(search_strategy.best_score_),
-    'exec_time': exec_time
+    'best_score': float(search_strategy.best_score_)  # Convert numpy float to Python float for JSON serialization
 }
 
 json_filename = f"{DIRECTORY}/best_results_{SAVE_FILE.replace('.csv', '.json')}"

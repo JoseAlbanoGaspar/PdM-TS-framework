@@ -16,8 +16,8 @@ imputation_params = [
     ('interpolate', 'linear'),
     ('interpolate', ('polynomial', 2)),
     ('interpolate', ('polynomial', 3)),
-    #('interpolate', ('spline', 2)),
-    #('interpolate', ('spline', 3)),
+    ('interpolate', ('spline', 2)),
+    ('interpolate', ('spline', 3)),
     ('ffill', None),
 ]
 

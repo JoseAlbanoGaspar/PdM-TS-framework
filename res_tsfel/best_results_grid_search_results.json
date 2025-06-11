@@ -1,6 +1,6 @@
 {
     "best_params": {
-        "classifier__base_estimator__max_depth": 3,
+        "classifier__base_estimator__max_depth": 7,
         "classifier__base_estimator__n_estimators": 100,
         "feature_extraction__n_lags": 3,
         "feature_extraction__params": [
@@ -10,12 +10,11 @@
             }
         ],
         "feature_selection__strategy": "correlation",
-        "feature_selection__threshold": 0.9,
+        "feature_selection__threshold": 0.95,
         "imputation__params": [
             "interpolate",
             "linear"
         ]
     },
-    "best_score": 0.6348314877924082,
-    "exec_time": "64h 51m 42.45s"
+    "best_score": 0.6688489836210606
 }
