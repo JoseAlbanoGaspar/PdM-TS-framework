@@ -3,12 +3,15 @@
 \centering
 \begin{tabular}{lccccc}
 \hline
-Model & Precision & Recall & Accuracy & AUC & False Positives & False Negatives \\
+Model & Precision & Recall & F1-score & AUC & False Positives & False Negatives \\
 \hline
-Best & 0.4545 & 0.0446 & 0.9112 & 0.6275 & 6 & 107 \\
-Baseline & 0.3333 & 0.0092 & 0.8962 & 0.6021 & 4 & 215 \\
+Best (LightGBM) & 0.4545 & 0.0446 & 0.0813 & 0.6275 & 6 & 107 \\
+Best (RandomForest) & 0.0000 & 0.0000 & 0.0000 & 0.7026 & 0 & 112 \\
+Best (DecisionTree) & 0.3256 & 0.1250 & 0.1806 & 0.6518 & 29 & 98 \\
+Baseline (LightGBM) & 0.3333 & 0.0092 & 0.0179 & 0.6021 & 4 & 215 \\
+Baseline 2 (LightGBM) & 0.2000 & 0.0067 & 0.0129 & 0.6386 & 4 & 149 \\
 \hline
 \end{tabular}
-\caption{Comparison of best pipeline and baseline pipeline on test set.}
+\caption{Comparison of best pipeline (with multiple tree-based classifiers) and baseline pipeline on test set.}
 \label{tab:best_baseline_comparison}
 \end{table}

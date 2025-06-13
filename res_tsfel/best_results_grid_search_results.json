@@ -2,7 +2,7 @@
     "best_params": {
         "classifier__base_estimator__max_depth": 7,
         "classifier__base_estimator__n_estimators": 100,
-        "feature_extraction__n_lags": 3,
+        "feature_extraction__n_lags": 3, 
         "feature_extraction__params": [
             "tsfel",
             {

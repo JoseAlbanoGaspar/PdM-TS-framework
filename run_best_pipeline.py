@@ -1,8 +1,10 @@
 import os
 import pandas as pd
 from lightgbm import LGBMClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import precision_score, recall_score, confusion_matrix, roc_auc_score, accuracy_score
+from sklearn.metrics import f1_score, precision_score, recall_score, confusion_matrix, roc_auc_score
+from sklearn.tree import DecisionTreeClassifier
 from FE_configuration import feature_extraction_preprocessing
 from transformers import ImputationWrapper, FeatureExtractorWrapper, FeatureSelectionWrapper
 from utils import train_test_split_by_time
@@ -44,14 +46,6 @@ best_params = {
 }
 
 # --- BEST PIPELINE ---
-meta_clf = MetaClassifier(
-    base_estimator=LGBMClassifier(
-        max_depth=best_params["classifier__base_estimator__max_depth"],
-        n_estimators=best_params["classifier__base_estimator__n_estimators"]
-    ),
-    column_config=COLUMN_CONFIG
-)
-
 best_pipeline = Pipeline([
     ('imputation', ImputationWrapper(params=best_params["imputation__params"], column_config=COLUMN_CONFIG)),
     ('feature_extraction', FeatureExtractorWrapper(
@@ -72,17 +66,47 @@ X_train_best = best_pipeline.fit_transform(train_df)
 X_test_best = best_pipeline.transform(test_df)
 y_test = X_test_best[COLUMN_CONFIG['target_col']]
 
-# For MetaClassifier, X must include protected columns and target_col for encoding
-meta_clf.fit(X_train_best)
-y_pred_best = meta_clf.predict(X_test_best)
-y_proba_best = meta_clf.predict_proba(X_test_best)[:, 1]
+tree_classifiers = {
+    "LightGBM": LGBMClassifier(
+        max_depth=best_params["classifier__base_estimator__max_depth"],
+        n_estimators=best_params["classifier__base_estimator__n_estimators"]
+    ),
+    "RandomForest": RandomForestClassifier(
+        max_depth=best_params["classifier__base_estimator__max_depth"],
+        n_estimators=best_params["classifier__base_estimator__n_estimators"],
+    ),
+    "DecisionTree": DecisionTreeClassifier(
+        max_depth=best_params["classifier__base_estimator__max_depth"],
+        random_state=42
+    ),
+}
 
-precision_best = precision_score(y_test, y_pred_best)
-recall_best = recall_score(y_test, y_pred_best)
-accuracy_best = accuracy_score(y_test, y_pred_best)
-auc_best = roc_auc_score(y_test, y_proba_best)
-tn, fp, fn, tp = confusion_matrix(y_test, y_pred_best).ravel()
-fp_best, fn_best = fp, fn
+results = []
+
+for clf_name, clf in tree_classifiers.items():
+    meta_clf = MetaClassifier(
+        base_estimator=clf,
+        column_config=COLUMN_CONFIG
+    )
+    meta_clf.fit(X_train_best)
+    y_pred = meta_clf.predict(X_test_best)
+    y_proba = meta_clf.predict_proba(X_test_best)[:, 1]
+
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+    auc = roc_auc_score(y_test, y_proba)
+    tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+    results.append({
+        "Model": f"Best ({clf_name})",
+        "Precision": precision,
+        "Recall": recall,
+        "F1": f1,
+        "AUC": auc,
+        "False Positives": fp,
+        "False Negatives": fn
+    })
+
 
 # --- BASELINE PIPELINE (no feature extraction) ---
 baseline_pipeline = Pipeline([
@@ -113,46 +137,96 @@ y_proba_baseline = meta_clf_baseline.predict_proba(X_test_baseline)[:, 1]
 
 precision_baseline = precision_score(y_test, y_pred_baseline)
 recall_baseline = recall_score(y_test, y_pred_baseline)
-accuracy_baseline = accuracy_score(y_test, y_pred_baseline)
+f1_baseline = f1_score(y_test, y_pred_baseline)
 auc_baseline = roc_auc_score(y_test, y_proba_baseline)
 tn, fp, fn, tp = confusion_matrix(y_test, y_pred_baseline).ravel()
-fp_baseline, fn_baseline = fp, fn
+results.append({
+    "Model": "Baseline (LightGBM)",
+    "Precision": precision_baseline,
+    "Recall": recall_baseline,
+    "F1": f1_baseline, 
+    "AUC": auc_baseline,
+    "False Positives": fp,
+    "False Negatives": fn
+})
+# --- BASELINE PIPELINE 2 (with tsfel) ---
+baseline_pipeline_2 = Pipeline([
+    ('imputation', ImputationWrapper(params=('ffill', None), column_config=COLUMN_CONFIG)),
+    ('feature_extraction', FeatureExtractorWrapper(
+        params=('tsfel', {'config_file': tsfel_config_file}),
+        n_lags=3,
+        column_config=COLUMN_CONFIG,
+        features=top_features
+    )),
+    ('feature_selection', FeatureSelectionWrapper(
+        strategy="correlation",
+        threshold=0.85,
+        column_config=COLUMN_CONFIG
+    )),
+])
+
+# Fit and transform train data
+X_train_baseline_2 = baseline_pipeline_2.fit_transform(train_df)
+X_test_baseline_2 = baseline_pipeline_2.transform(test_df)
+y_test = X_test_baseline_2[COLUMN_CONFIG['target_col']]
+
+# Use same MetaClassifier configuration
+meta_clf_baseline_2 = MetaClassifier(
+    base_estimator=LGBMClassifier(
+        max_depth=best_params["classifier__base_estimator__max_depth"],
+        n_estimators=best_params["classifier__base_estimator__n_estimators"]
+    ),
+    column_config=COLUMN_CONFIG
+)
+meta_clf_baseline_2.fit(X_train_baseline_2)
+y_pred_baseline_2 = meta_clf_baseline_2.predict(X_test_baseline_2)
+y_proba_baseline_2 = meta_clf_baseline_2.predict_proba(X_test_baseline_2)[:, 1]
+
+precision_baseline_2 = precision_score(y_test, y_pred_baseline_2)
+recall_baseline_2 = recall_score(y_test, y_pred_baseline_2)
+f1_baseline_2 = f1_score(y_test, y_pred_baseline_2)
+auc_baseline_2 = roc_auc_score(y_test, y_proba_baseline_2)
+tn, fp, fn, tp = confusion_matrix(y_test, y_pred_baseline_2).ravel()
+results.append({
+    "Model": "Baseline 2 (LightGBM)",
+    "Precision": precision_baseline_2,
+    "Recall": recall_baseline_2,
+    "F1": f1_baseline_2,
+    "AUC": auc_baseline_2,
+    "False Positives": fp,
+    "False Negatives": fn
+})
+
 
 # --- PRINT RESULTS AS DATAFRAME ---
-results_df = pd.DataFrame({
-    "Precision": [precision_best, precision_baseline],
-    "Recall": [recall_best, recall_baseline],
-    "Accuracy": [accuracy_best, accuracy_baseline],
-    "AUC": [auc_best, auc_baseline],
-    "False Positives": [fp_best, fp_baseline],
-    "False Negatives": [fn_best, fn_baseline]
-}, index=["Best", "Baseline"])
-
-print("\nComparison of Best and Baseline Pipelines:\n")
+results_df = pd.DataFrame(results)
+results_df.set_index("Model", inplace=True)
+print("\nComparison of Best (multiple trees) and Baseline Pipelines:\n")
 print(results_df)
 
 # --- LATEX TABLE ---
-table = r"""
+table_header = r"""
 \begin{table}[ht]
 \centering
 \begin{tabular}{lccccc}
 \hline
-Model & Precision & Recall & Accuracy & AUC & False Positives & False Negatives \\
+Model & Precision & Recall & F1-score & AUC & False Positives & False Negatives \\
 \hline
-Best & %.4f & %.4f & %.4f & %.4f & %d & %d \\
-Baseline & %.4f & %.4f & %.4f & %.4f & %d & %d \\
-\hline
+"""
+table_rows = ""
+for idx, row in results_df.iterrows():
+    table_rows += f"{idx} & {row['Precision']:.4f} & {row['Recall']:.4f} & {row['F1']:.4f} & {row['AUC']:.4f} & {int(row['False Positives'])} & {int(row['False Negatives'])} \\\\\n"
+table_footer = r"""\hline
 \end{tabular}
-\caption{Comparison of best pipeline and baseline pipeline on test set.}
+\caption{Comparison of best pipeline (with multiple tree-based classifiers) and baseline pipeline on test set.}
 \label{tab:best_baseline_comparison}
 \end{table}
-""" % (
-    precision_best, recall_best, accuracy_best, auc_best, fp_best, fn_best,
-    precision_baseline, recall_baseline, accuracy_baseline, auc_baseline, fp_baseline, fn_baseline
-)
+"""
+
+latex_table = table_header + table_rows + table_footer
 
 os.makedirs("analysis/tables", exist_ok=True)
 with open("analysis/tables/best_baseline_comparison.tex", "w") as f:
-    f.write(table)
+    f.write(latex_table)
 
 print("\nLatex table saved to analysis/tables/best_baseline_comparison.tex")
