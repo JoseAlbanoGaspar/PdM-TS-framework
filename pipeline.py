@@ -1,8 +1,5 @@
 from lightgbm import LGBMClassifier
-import numpy as np
 import pandas as pd
-from sklearn.experimental import enable_halving_search_cv
-from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import (
     RandomizedSearchCV,
@@ -11,8 +8,7 @@ from sklearn.model_selection import (
     HalvingRandomSearchCV,
     TimeSeriesSplit
 )
-from sklearn.metrics import roc_auc_score
-import time  # Import time module for timing execution
+import time
 
 from FE_configuration import feature_extraction_preprocessing
 from transformers import (

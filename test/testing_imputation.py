@@ -1,5 +1,9 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 import pandas as pd
-import numpy as np
 from sklearn.pipeline import Pipeline
 from transformers import ImputationWrapper
 
@@ -59,7 +63,7 @@ def test_imputation(df, params):
 def main():
     # Load dataset
     print("Loading dataset...")
-    raw_df = pd.read_pickle("Datasets/final_dataset.pkl")
+    raw_df = pd.read_pickle("../Datasets/final_dataset.pkl")
     
     # Print initial null values
     print("\nInitial dataset stats:")
