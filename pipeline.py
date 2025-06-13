@@ -158,7 +158,6 @@ halving_grid = HalvingGridSearchCV(
 )
 
 # 4. Successive Halving Random Search - combines random search with successive halving
-
 halving_random = HalvingRandomSearchCV(
     pipeline,
     param_distributions,
@@ -250,49 +249,3 @@ with open(json_filename, 'w') as f:
     json.dump(best_results, f, indent=4)
 
 print(f"\nBest parameters and score saved to {json_filename}")
-
-
-
-
-
-
-
-
-
-
-
-
-'''
-# Get the best pipeline and transform the test data
-best_pipeline = search_strategy.best_estimator_
-test_transformed = test_df.copy()
-for name, step in best_pipeline.named_steps.items():
-    if name != 'classifier':
-        test_transformed = step.transform(test_transformed)
-
-# Calculate and print the final score
-print(f"\nTest Accuracy: {best_pipeline.score(test_transformed):.4f}")
-
-
-# Create a nicer display of the best parameters
-print("\n--- Best Parameters ---")
-for param, value in search_strategy.best_params_.items():
-    print(f"{param}: {value}")
-
-# Display the top 5 best parameter combinations
-print("\n--- Top 5 Best Parameter Combinations ---")
-top_params = results_df.sort_values('mean_test_score', ascending=False).head(5)
-for i, row in top_params.iterrows():
-    print(f"\nRank {i+1} - Score: {row['mean_test_score']:.4f}")
-    for param, value in row['params'].items():
-        print(f"  {param}: {value}")
-
-# Display the worst 5 parameter combinations
-print("\n--- 5 Worst Parameter Combinations (Potential Failures) ---")
-worst_params = results_df.sort_values('mean_test_score').head(5)
-for i, row in worst_params.iterrows():
-    print(f"\nRank {len(results_df)-i} - Score: {row['mean_test_score']:.4f}")
-    for param, value in row['params'].items():
-        print(f"  {param}: {value}")
-
-'''
