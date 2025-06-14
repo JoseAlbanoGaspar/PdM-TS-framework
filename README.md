@@ -1,13 +1,32 @@
-# PdM-TS-framework
+# OptimusPipe
 
-This project aims to develop a framework that performs feature engineering operations over time series, addressing problems such as irregularity, value imputation, feature extraction and feature selection.
-This framework can be found on a file called framework.ipynb.
+This project aims to develop a package that automates and optimized the feature engineering process in the context of predictive maintenance, addressing problems such as irregularity, value imputation, feature extraction, feature selection, and normalization.
+An overview image can be seen below:
+
+![Diagram](analysis/project-diagrams/framework_overview.png)
+
+This framework was developed within the context of the master thesis "Automated feature engineering for predictive maintenance"
+
+## Usage
+
+The main file is the optimusPipe.py where the function responsible for optimizing and automating the feature engineering process is used.
+An example of how to use the framework is provided in optimusPipe.py file.
+The package gives the user the possibility to choose the steps that the pipeline will have, the parameter distribution, the feature extractors and the search strategy used.
+
+## Tests
+
+The tests are inside the test folder and each script can be run individually.
+Tests enphasize the imputation transformers.
 
 ## Case study
 
-To test the developed framework, a dataset about a compression machine, that produces pills, was used.
-The flow of the pipeline follows the following order
-- framework_input.ipynb is responsible for pre-processing data from the original dataset, generating the input dataset for the framework
-- framework.ipynb is responsible to exhaustively perform all possible combinations provided by the developed framework. It outputs a set of datasets that are used on the next step
-- model.ipynb builds a pipeline for training models over the data previously obtained
-- evaluation.ipynb compares the results obtained with benchmark approaches
+The framework was validated through a case study on the pharmaceutical industry, more precisely over a compression machine used on the production of pills.
+First the optimusPipe was used to get the best results.
+Then the run_best_pipeline.py file is responsible for creating the results based on the best pipeline obtained previously, with variations on the final classifier, plus 2 different baselines for comparison. The results are stored in analysis\tables\best_baseline_comparison.tex
+
+The other results are obtained by running the scripts inside the analysis folder, individually, in no particular order, and the results are stored under the directories analysis\plots and analysis\tables
+
+
+
+  
+  
